@@ -143,9 +143,11 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
 .aiband[aria-pressed="true"]{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
 .aiband b{font:700 18px var(--f-display);color:var(--accent)}
 .aiband span{font-size:15px;color:var(--muted)}
-.detail{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;min-height:0}
-.tex{padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:21px;overflow:hidden;min-height:76px;display:flex;align-items:center}
-.tex .katex-display{margin:0}
+.detail{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;min-height:0}
+.tex{padding:14px 18px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:18px;overflow-x:auto;overflow-y:hidden;min-height:86px;display:flex;align-items:center;justify-content:center}
+.tex .katex-display{margin:0;width:100%;text-align:center}
+.tex::-webkit-scrollbar{height:4px}
+.tex::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:2px}
 .vars{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:15.5px}
 .vars li{display:grid;grid-template-columns:110px 1fr;gap:12px}
 .vars code{font:600 15px var(--f-mono);color:var(--accent)}
@@ -1157,19 +1159,19 @@ function renderAnalysis(){if(CUR!=="tahlil")return;renderFinds();const D=AN[anPo
 
 /* ---------- slide 4: model ---------- */
 const MD=[
- {k:"01 · Trafik oqimi modeli (LWR, Greenshields)",tex:"\\frac{\\partial \\rho}{\\partial t}+\\frac{\\partial (\\rho v)}{\\partial x}=0,\\qquad v(\\rho)=v_f\\Big(1-\\frac{\\rho}{\\rho_{\\max}}\\Big)",
+ {k:"01 · Trafik oqimi modeli (LWR, Greenshields)",tex:"\\begin{aligned} \\frac{\\partial \\rho}{\\partial t}+\\frac{\\partial (\\rho v)}{\\partial x} &= 0 \\\\[4pt] v(\\rho) &= v_f\\Big(1-\\frac{\\rho}{\\rho_{\\max}}\\Big) \\end{aligned}",
   v:[["ρ","zichlik: ko‘chaning har km/qatoridagi avtomobillar"],["v","oqim tezligi"],["v_f","erkin tezlik: magistralda 60–70, ko‘chada 40–50 km/soat"],["ρ_max","≈ 140 avto/km/qator: to‘liq tiqilish"]],
   p:"Ko‘chada mashina qancha ko‘p bo‘lsa, ular shuncha sekin yuradi. Birinchi tenglama mashinalar yo‘qolmasligini aytadi (saqlanish qonuni), ikkinchisi tezlikni zichlikka bog‘laydi. Simulyatsiyada har bir ko‘cha bo‘lagi uchun alohida hisoblanadi.",h:"Sinab ko‘rish: 4-slayd, A tajriba"},
- {k:"02 · Emissiya modeli (COPERT tipidagi)",tex:"E_c(t)=R\\sum_{i\\in c} EF_{k_i}(v_i)\\,\\mu_{e_i}\\,v_i,\\qquad EF(v)=EF_{50}\\Big(\\frac{25}{v}+0.4+\\frac{v}{500}\\Big)",
+ {k:"02 · Emissiya modeli (COPERT tipidagi)",tex:"\\begin{aligned} E_c(t) &= R\\sum_{i\\in c} EF_{k_i}(v_i)\\,\\mu_{e_i}\\,v_i \\\\[4pt] EF(v) &= EF_{50}\\Big(\\frac{25}{v}+0.4+\\frac{v}{500}\\Big) \\end{aligned}",
   v:[["EF₅₀","50 km/soatdagi chiqindi, g/km (benzin NOₓ 0.35, dizel avtobus 7.5)"],["k","yoqilg‘i: benzin, metan, propan, dizel, elektr"],["μ_e","Evro sinfi koeffitsienti: 0.45 (Evro-6) … 1.8 (Evro-0)"],["R","bitta modeldagi belgi nechta real avtomobilni ifodalaydi"]],
   p:"Har bir mashina har soniyada qancha NOₓ, PM2.5, CO va CO₂ chiqarishini hisoblaymiz. Tezlik pasayganda EF(v) keskin oshadi: 12 km/soatda 1 km uchun 50 km/soatdagidan 2–3 barobar ko‘p. Eski dizel avtobus bitta o‘zi o‘nlab yengil mashinaga teng.",h:"Sinab ko‘rish: 4-slayd, B tajriba"},
  {k:"03 · Tarqalish: adveksiya–diffuziya tenglamasi",tex:"\\frac{\\partial C}{\\partial t}+\\mathbf{u}\\cdot\\nabla C=K\\nabla^2 C+\\frac{E}{\\Delta x^2 H}-\\frac{C}{\\tau}-\\kappa_g C",
   v:[["C(x,y,t)","konsentratsiya, µg/m³"],["u","shamol vektori: ifloslanishni olib ketadi"],["K","turbulent diffuziya: 5 + 4|u| m²/s"],["H, τ","havo qatlami balandligi va vertikal almashinuv vaqti (inversiyada kichik H)"],["κ_g","yashil polosalarda zarrachalarning cho‘kishi"]],
   p:"Chiqindi shamol bilan oqadi, atrofga yoyiladi, havo qatlami past bo‘lsa yuqoriga keta olmaydi. Tenglamani 50 m to‘rda (189 × 173 = 32 700 katak) chekli hajmlar usuli bilan har kadrda yechamiz. Real tahlil buni tasdiqlaydi: havo qatlami past bo‘lganda NO₂ bir necha barobar yuqori.",h:"Sinab ko‘rish: 4-slayd, C tajriba va 6-slayd"},
- {k:"04 · Sog‘liq va iqtisodiy zarar",tex:"\\Delta M=M_0\\,P\\,\\big(1-e^{-\\beta\\Delta C}\\big),\\ \\ \\beta=\\frac{\\ln 1.08}{10};\\qquad D=\\sum_i\\big(m_{PM,i}+0.1\\,m_{NO_x,i}\\big)\\,c_d",
+ {k:"04 · Sog‘liq va iqtisodiy zarar",tex:"\\begin{aligned} \\Delta M &= M_0\\,P\\,\\big(1-e^{-\\beta\\Delta C}\\big), \\quad \\beta=\\frac{\\ln 1.08}{10} \\\\[4pt] D &= \\sum_i\\big(m_{PM,i}+0.1\\,m_{NO_x,i}\\big)\\,c_d \\end{aligned}",
   v:[["β","JSST 2021: PM2.5 har +10 µg/m³ ga o‘lim xavfi +8%"],["P, M₀","aholi soni va bazaviy o‘lim darajasi"],["c_d","≈ $0.17/g: Jahon banki zararining transport qismi yillik chiqindiga bo‘lingan"],["0.1","NOₓ dan ikkilamchi zarracha hosil bo‘lish ulushi"]],
   p:"Konsentratsiyani odamlarga taʼsirga aylantiramiz: qancha qo‘shimcha o‘lim va qancha pul zarari. Shu tufayli har bir mashina va har bir chora uchun dollar va hayotlarda natija ko‘rsatamiz.",h:"Natija: 6-slayddagi mashina kartasi va 8-slayd"},
- {k:"05 · Sunʼiy intellekt: gradient boosting",tex:"\\hat y_{t+h}=\\bar y+\\sum_{m=1}^{140}\\eta\\,f_m(\\mathbf{x}),\\qquad \\mathbf{x}=(\\text{soat},\\,u,\\,T,\\,H_{mix},\\,y_{t-24},\\,\\bar y_{24},\\dots)",
+ {k:"05 · Sunʼiy intellekt: gradient boosting",tex:"\\begin{aligned} \\hat y_{t+h} &= \\bar y+\\sum_{m=1}^{140}\\eta\\,f_m(\\mathbf{x}) \\\\[4pt] \\mathbf{x} &= (\\text{soat},\\,u,\\,T,\\,H_{mix},\\,y_{t-24},\\,\\bar y_{24},\\dots) \\end{aligned}",
   v:[["f_m","qaror daraxti (chuqurlik 4), har biri oldingilar xatosini tuzatadi"],["η","o‘rganish qadami 0.08"],["x","kirish: vaqt, ob-havo, havo qatlami, o‘tgan kun qiymatlari, fizik model bahosi"]],
   p:"Matematik modelning parametrlari (K, H, avtopark tarkibi) aniq maʼlum emas. Isitish va chang kabi manbalarni u ko‘rmaydi, CFD (COMSOL) esa butun shahar uchun juda sekin. AI tarixiy maʼlumotdan bu xatolarni o‘rganadi va millisekundda 24 soatlik prognoz beradi.",h:"Ko‘rish: 7-slayd, real maʼlumotda o‘qitilgan model"}];
 function showModel(i){$$("#flow .blk,.aiband").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.m===i?"true":"false"));const m=MD[i];$("#md-k").textContent=m.k;
