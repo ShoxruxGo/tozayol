@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TozaYo‘l · Toshkent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+/* Deck: fixed top bar + one slide at a time. Content slides are a 1600×900 stage scaled to fit; the map slide fills the viewport. Light, paper-white. */
+:root{
+  color-scheme:light;
+  --page:#e7eeeb;--paper:#ffffff;--paper-2:#f4f8f6;--ink:#0d1f1b;--muted:#4f625d;--faint:#869590;--line:#d8e2de;--line-2:#c3d1cc;
+  --accent:#0b7a57;--accent-soft:#dcf1e8;--accent-ink:#ffffff;--blue:#1d65c9;
+  --good:#1f9d55;--mod:#d99a00;--usg:#e06a12;--bad:#cf2e2e;--vbad:#8a3fc4;
+  /* aliases used by simulation code */
+  --fg:var(--ink);--bg:var(--paper-2);--surface:var(--paper);--surface-2:#eef4f1;
+  --f-display:'Unbounded','Onest',system-ui,sans-serif;
+  --f-body:'Onest',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--page);color:var(--ink)}
+body{font:16px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;overflow:hidden}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--accent)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.bar{position:fixed;inset:0 0 auto;height:56px;z-index:3000;display:flex;align-items:center;gap:14px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:9px;flex:none}
+.logo b{font:700 17px/1 var(--f-display);letter-spacing:-.01em}
+.logo b em{font-style:normal;color:var(--accent)}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;justify-content:center}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{all:unset;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;font:500 13px var(--f-body);color:var(--muted);padding:7px 10px;border-radius:9px}
+.tabs button i{font:600 11px/1 var(--f-mono);font-style:normal;width:21px;height:21px;border-radius:6px;display:grid;place-items:center;border:1px solid var(--line-2);color:var(--muted)}
+.tabs button:hover{background:var(--paper-2);color:var(--ink)}
+.tabs button[aria-current="true"]{color:var(--ink);background:var(--accent-soft)}
+.tabs button[aria-current="true"] i{background:var(--accent);border-color:var(--accent);color:#fff}
+.tabs button:focus-visible,.arrows button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.arrows{display:flex;gap:6px;flex:none;align-items:center}
+.arrows button{all:unset;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line-2);border-radius:9px;font:600 15px var(--f-mono);background:#fff}
+.arrows button:hover{border-color:var(--accent);color:var(--accent)}
+.arrows span{font:600 12px var(--f-mono);color:var(--faint);min-width:40px;text-align:center}
+@media (max-width:1100px){.tabs button span{display:none}}
+
+/* deck */
+.deck{position:fixed;inset:56px 0 0;overflow:hidden}
+.slide{position:absolute;inset:0;display:none}
+.slide.on{display:block}
+.fit{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center center;background:var(--paper);border-radius:18px;box-shadow:0 1px 2px rgba(13,31,27,.06),0 16px 50px rgba(13,31,27,.08);padding:52px 68px 46px;display:flex;flex-direction:column;overflow:hidden}
+.kick{font:600 13px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.st{font:700 40px/1.12 var(--f-display);letter-spacing:-.02em;margin-top:12px;max-width:1300px}
+.sub{font-size:19px;color:var(--muted);margin-top:12px;max-width:1250px}
+.body{flex:1;min-height:0;margin-top:26px;display:grid;gap:18px}
+.foot{margin-top:14px;font-size:13px;color:var(--faint);display:flex;justify-content:space-between;gap:16px}
+.foot a{color:var(--faint)}
+.how{display:inline-flex;gap:8px;align-items:center;font-size:13.5px;color:var(--accent);background:var(--accent-soft);padding:6px 11px;border-radius:999px;font-weight:500}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:16px;padding:20px 22px;min-width:0;min-height:0;display:flex;flex-direction:column}
+.card h3{font:600 19px/1.25 var(--f-body)}
+.card .hint{font-size:14.5px;color:var(--muted);margin-top:4px}
+.seg{display:inline-flex;background:#fff;border:1px solid var(--line-2);border-radius:10px;padding:3px}
+.seg button{all:unset;cursor:pointer;font:500 14px/1 var(--f-body);color:var(--muted);padding:8px 13px;border-radius:7px;text-align:center}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0}
+select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:500 14px var(--f-body)}
+.ctl{display:flex;flex-direction:column;gap:2px}
+.ctl label{display:flex;justify-content:space-between;font-size:14.5px;color:var(--muted)}
+.ctl label b{font:600 14px var(--f-mono);color:var(--ink)}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font:13px var(--f-mono)}
+.chart .gl line{stroke:var(--line)}
+.lg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px;color:var(--muted);margin-top:6px}
+.lg i{display:inline-block;width:16px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.live{display:inline-flex;align-items:center;gap:7px;font:600 12px var(--f-mono);color:var(--good);letter-spacing:.04em}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 22%,transparent)}
+.live.off{color:var(--faint)}.live.off::before{background:var(--faint);box-shadow:none}
+
+/* slide 1 cover */
+.cover{display:grid;grid-template-columns:1.25fr 1fr;gap:40px;height:100%;align-items:center}
+.cover h1{font:700 92px/0.95 var(--f-display);letter-spacing:-.04em}
+.cover h1 em{font-style:normal;color:var(--accent)}
+.cover .tag{font:500 27px/1.3 var(--f-body);margin-top:22px;max-width:760px}
+.cover .meta{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap}
+.cover .meta span{font-size:15px;padding:8px 14px;border:1px solid var(--line-2);border-radius:999px;color:var(--muted)}
+.now{background:var(--ink);color:#fff;border-radius:22px;padding:30px 32px;display:flex;flex-direction:column;gap:18px}
+.now .t{display:flex;justify-content:space-between;align-items:center}
+.now .t span{font:600 13px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:#9fb5ae}
+.now .aqi{display:flex;align-items:baseline;gap:14px}
+.now .aqi b{font:700 104px/0.9 var(--f-display);letter-spacing:-.04em}
+.now .aqi span{font-size:20px;color:#cfe0da}
+.now .cat{font-size:20px;font-weight:600;padding:8px 14px;border-radius:10px;align-self:flex-start}
+.now .g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.now .g div{background:rgba(255,255,255,.07);border-radius:12px;padding:12px 14px}
+.now .g span{display:block;font-size:13px;color:#9fb5ae}
+.now .g b{font:600 24px var(--f-mono)}
+.now small{font-size:13px;color:#9fb5ae}
+.start{margin-top:26px;font-size:16px;color:var(--muted)}
+.start kbd{font:600 13px var(--f-mono);border:1px solid var(--line-2);border-bottom-width:2px;border-radius:6px;padding:2px 7px;background:#fff;color:var(--ink)}
+
+/* slide 2 problem */
+.big4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat{background:var(--paper-2);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.stat .v{font:700 46px/1 var(--f-display);letter-spacing:-.03em}
+.stat .v small{font:500 17px var(--f-body);color:var(--muted);letter-spacing:0}
+.stat .l{font-size:16px;line-height:1.35}
+.stat .s{font-size:12.5px;color:var(--faint);margin-top:auto}
+.stat.red{background:#fdf0ef;border-color:#f3c9c6}.stat.red .v{color:var(--bad)}
+.chain{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.chain div{padding:18px;background:#fff;border-right:1px solid var(--line);position:relative}
+.chain div:last-child{border-right:0}
+.chain b{font:600 12px var(--f-mono);letter-spacing:.1em;color:var(--accent)}
+.chain h4{font-size:18px;margin:8px 0 6px}
+.chain p{font-size:14.5px;color:var(--muted);line-height:1.4}
+.q{padding:18px 24px;border-radius:16px;background:var(--ink);color:#fff;font:600 23px/1.35 var(--f-body)}
+.q em{font-style:normal;color:#7ee0b5}
+
+/* slide 3 analysis */
+.find{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.find div{border-radius:14px;padding:16px 18px;background:#fff;border:1px solid var(--line)}
+.find b{display:block;font:700 34px/1.05 var(--f-display);letter-spacing:-.02em;color:var(--accent)}
+.find span{font-size:14.5px;color:var(--muted);line-height:1.35;display:block;margin-top:6px}
+
+/* slide 4 model architecture */
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative}
+.blk{all:unset;cursor:pointer;background:#fff;border:2px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px;position:relative}
+.blk:hover{border-color:var(--line-2)}
+.blk[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.blk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.blk .n{font:600 12px var(--f-mono);letter-spacing:.1em;color:var(--accent)}
+.blk h4{font-size:20px}
+.blk p{font-size:14.5px;color:var(--muted);line-height:1.35}
+.blk:not(:last-child)::after{content:"→";position:absolute;right:-16px;top:50%;transform:translateY(-50%);font:700 20px var(--f-mono);color:var(--accent);z-index:2}
+.aiband{all:unset;cursor:pointer;display:flex;align-items:center;gap:16px;padding:14px 20px;border:2px dashed #9ad3bd;border-radius:16px;background:#f3fbf7}
+.aiband[aria-pressed="true"]{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.aiband b{font:700 18px var(--f-display);color:var(--accent)}
+.aiband span{font-size:15px;color:var(--muted)}
+.detail{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;min-height:0}
+.tex{padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:21px;overflow:hidden;min-height:76px;display:flex;align-items:center}
+.tex .katex-display{margin:0}
+.vars{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:15.5px}
+.vars li{display:grid;grid-template-columns:110px 1fr;gap:12px}
+.vars code{font:600 15px var(--f-mono);color:var(--accent)}
+.plain{font-size:17px;line-height:1.5}
+.why ol{margin:10px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:9px;font-size:15.5px}
+.why li span{color:var(--muted)}
+
+/* slide 5 labs */
+.labs{grid-template-columns:repeat(3,1fr)}
+.lab{gap:12px}
+.lab .res{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lab .res div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.lab .res span{display:block;font-size:12.5px;color:var(--faint)}
+.lab .res b{font:600 19px var(--f-mono)}
+.lab canvas{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+.mtbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.mtbl td,.mtbl th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--f-mono)}
+.mtbl td:first-child,.mtbl th:first-child{text-align:left;font-family:var(--f-body)}
+.mtbl th{font:600 12px var(--f-mono);color:var(--faint)}
+.verd{font-size:15px;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid var(--line)}
+
+/* slide 6 map */
+#s-sim{background:#dfe6e3}
+#map{position:absolute;inset:0;background:#dfe6e3}
+#ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:450}
+.leaflet-container{font-family:var(--f-body)}
+.panel{position:absolute;z-index:900;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(13,31,27,.16)}
+.pl{left:12px;top:12px;width:292px;max-height:calc(100% - 24px);overflow:auto;padding:13px}
+.pr{right:12px;top:12px;width:318px;max-height:calc(100% - 24px);overflow:auto;padding:13px;display:flex;flex-direction:column;gap:11px}
+.pb{left:50%;transform:translateX(-50%);bottom:12px;padding:8px 12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 660px)}
+.guide{left:50%;top:12px;transform:translateX(-50%);padding:10px 14px;display:flex;gap:16px;align-items:center;font-size:13px;max-width:calc(100% - 660px)}
+.guide ol{margin:0;padding-left:18px;display:flex;gap:18px}
+.guide li::marker{color:var(--accent);font-weight:700}
+.guide button{all:unset;cursor:pointer;color:var(--faint);font-size:15px}
+@media (max-width:1250px){.pb,.guide{display:none}}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+.ph h3{font-size:14px}
+.ph .eyebrow{font:600 10.5px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.panel .ctl{margin-bottom:9px}
+.panel .ctl label,.panel .ctl .l{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.panel .ctl b{font:600 12px var(--f-mono);color:var(--ink)}
+.panel .seg{display:flex;width:100%}
+.panel .seg button{flex:1;font-size:12px;padding:7px 5px}
+.btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 12.5px/1 var(--f-body);padding:8px 11px;border-radius:9px;border:1px solid var(--line-2);color:var(--ink);background:#fff}
+.btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:6px;align-items:center}
+.chips{display:flex;flex-direction:column;gap:5px}
+.chip{all:unset;cursor:pointer;display:grid;grid-template-columns:16px 1fr;gap:8px;align-items:start;font-size:12.5px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:#fff}
+.chip .box{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--line-2);margin-top:1px}
+.chip small{display:block;color:var(--faint);font-size:11px;margin-top:1px}
+.chip[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+.chip[aria-pressed=true] .box{background:var(--accent);border-color:var(--accent)}
+.status{font:11px/1.4 var(--f-mono);color:var(--faint);margin-top:6px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.kp{background:var(--paper-2);border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+.kp span{display:block;font-size:10.5px;color:var(--faint);line-height:1.25}
+.kp b{font:600 15px var(--f-mono);font-variant-numeric:tabular-nums}
+.kp b small{font:500 10.5px var(--f-body);color:var(--muted)}
+.kp.wide{grid-column:1/-1}
+.kp.dmg{background:#fdf0ef;border-color:#f3c9c6}.kp.dmg b{color:var(--bad)}
+.stack{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:6px;background:var(--line)}
+.stack span{height:100%}
+.sh{font-size:11px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.ramp{width:170px;height:8px;border-radius:4px}
+.carcard{border-top:1px solid var(--line);padding-top:10px}
+.carcard .top{display:flex;gap:10px;align-items:center}
+.carcard .sw{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
+.carcard h4{font-size:14px}
+.carcard .sub{font-size:12px;color:var(--muted);margin:0}
+.carcard table{width:100%;border-collapse:collapse;margin-top:9px;font-size:12px}
+.carcard td{padding:4px 0;border-bottom:1px solid var(--line)}
+.carcard td:nth-child(n+2){text-align:right;font-family:var(--f-mono)}
+.carcard th{font:600 10px var(--f-mono);color:var(--faint);text-align:right;padding-bottom:3px}
+.carcard th:first-child{text-align:left}
+.verdict{margin-top:9px;font-size:12.5px;padding:9px 10px;border-radius:9px;background:var(--paper-2);border:1px solid var(--line)}
+.leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.5}
+.pop b{font-family:var(--f-mono)}
+.pill{font:600 12px/1 var(--f-mono);padding:5px 9px;border-radius:999px;white-space:nowrap}
+
+/* slide 7 AI */
+.aigrid{grid-template-columns:1.55fr 1fr}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.metrics div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metrics span{display:block;font-size:12.5px;color:var(--muted)}
+.metrics b{font:600 22px var(--f-mono)}
+.metrics .win{border:2px solid var(--accent);background:var(--accent-soft)}
+.bars{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.bars .b{display:grid;grid-template-columns:1fr 58px;gap:3px 10px;align-items:center;font-size:14px}
+.bars .t{height:8px;background:#fff;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.bars .f{height:100%;background:var(--accent)}
+.bars .v{grid-row:1/3;grid-column:2;text-align:right;font:600 14px var(--f-mono)}
+.callout{margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid var(--line);font-size:15.5px}
+.callout b{font-family:var(--f-mono)}
+
+/* slide 8 calculator */
+.calc{grid-template-columns:1fr 1.05fr}
+.sl{display:grid;grid-template-columns:1fr;gap:12px}
+.sl .ctl label span{color:var(--ink);font-weight:500}
+.sl .ctl small{font-size:12.5px;color:var(--faint)}
+.outs{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.outs div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.outs span{display:block;font-size:14px;color:var(--muted)}
+.outs b{font:700 40px/1.1 var(--f-display);letter-spacing:-.02em;color:var(--accent)}
+.contrib{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+.contrib .b{display:grid;grid-template-columns:230px 1fr 64px;gap:10px;align-items:center;font-size:14px}
+.contrib .t{height:12px;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.contrib .f{height:100%;background:var(--good)}
+.contrib .v{font:600 14px var(--f-mono);text-align:right}
+.hotl{list-style:none;margin:6px 0 0;padding:0}
+.hotl li{display:grid;grid-template-columns:30px 1fr auto;gap:2px 10px;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px;cursor:pointer}
+.hotl li:hover .n{color:var(--accent)}
+.hotl .i{font:700 14px var(--f-mono);color:var(--bad)}
+.hotl .d{grid-column:2/4;color:var(--muted);font-size:13px}
+
+/* slide 9 */
+.road{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.road div{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:18px;border-top:4px solid var(--accent)}
+.road b{display:block;font:600 13px var(--f-mono);color:var(--accent);letter-spacing:.06em}
+.road h4{font-size:19px;margin:6px 0}
+.road p{font-size:14.5px;color:var(--muted)}
+.who{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.who div{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff}
+.who b{font-size:16px;display:block;margin-bottom:6px}
+.who p{font-size:14px;color:var(--muted)}
+.closing{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.closing div{background:var(--ink);color:#fff;border-radius:16px;padding:20px}
+.closing b{font:700 30px/1.1 var(--f-display);color:#7ee0b5;display:block}
+.closing span{font-size:15.5px;color:#cfe0da}
+
+/* small screens: no scaling, scroll inside slide */
+@media (max-width:820px){
+  body{overflow:auto}
+  .fit{position:static;width:auto;height:auto;transform:none!important;border-radius:0;padding:26px 18px;overflow:visible}
+  .slide.on{position:relative;overflow:auto;height:100%}
+  .st{font-size:26px}.sub{font-size:16px}
+  .body,.cover,.big4,.chain,.find,.flow,.detail,.labs,.aigrid,.calc,.road,.who,.closing,.outs{grid-template-columns:1fr!important}
+  .cover h1{font-size:56px}
+  .blk::after{display:none}
+  .pl,.pr{position:relative;inset:auto;width:auto;max-height:none;margin:8px}
+  #s-sim{overflow:auto}
+  #map{position:relative;height:65vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="logo"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#0b7a57"/><path d="M9 29 L17 11 M31 29 L23 11" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M20 14v3M20 21v3M20 28v2" stroke="#7ee0b5" stroke-width="2.4" stroke-linecap="round"/></svg><b>Toza<em>Yo‘l</em></b></div>
+  <nav class="tabs" id="tabs" aria-label="Slaydlar"></nav>
+  <div class="arrows"><button id="prev" aria-label="Oldingi slayd">←</button><span id="pg">1 / 9</span><button id="next" aria-label="Keyingi slayd">→</button></div>
+</header>
+<main class="deck" id="deck">
+
+<!-- 1 COVER -->
+<section class="slide" id="s-cover" data-k="cover" data-t="Muqova"><div class="fit"><div class="cover">
+  <div>
+    <div class="kick">Ekoxakaton · 2026</div>
+    <h1 style="margin-top:22px">Toza<em>Yo‘l</em></h1>
+    <p class="tag">Toshkentda avtomobillar chiqarayotgan ifloslanishni ko‘cha darajasida ko‘rsatadigan, oldindan aytadigan va kamaytirish yo‘lini hisoblab beradigan raqamli egizak</p>
+    <div class="meta"><span>Matematik model: trafik → emissiya → tarqalish</span><span>Sunʼiy intellekt prognozi</span><span>Real maʼlumotlar</span></div>
+    <p class="start">Boshqarish: <kbd>←</kbd> <kbd>→</kbd> yoki tepadagi raqamlar. Har bir slaydda parametrlarni o‘zgartirib ko‘rish mumkin.</p>
+  </div>
+  <div class="now" id="now">
+    <div class="t"><span>Toshkent havosi hozir</span><span class="live off" id="now-live">yuklanmoqda</span></div>
+    <div class="aqi"><b id="now-aqi">86</b><span>US AQI</span></div>
+    <div class="cat" id="now-cat" style="background:#e8a500;color:#1b1400">O‘rtacha</div>
+    <div class="g"><div><span>PM2.5</span><b id="now-pm">38.2</b></div><div><span>NO₂</span><b id="now-no2">50.6</b></div><div><span>CO</span><b id="now-co">344</b></div></div>
+    <small id="now-src">Copernicus CAMS, Open-Meteo orqali · µg/m³ · 20-oktabr 2026, 22:00 holati</small>
+  </div>
+</div></div></section>
+
+<!-- 2 PROBLEM -->
+<section class="slide" id="s-muammo" data-k="muammo" data-t="Muammo"><div class="fit">
+  <div class="kick">1 · Muammo</div>
+  <h2 class="st">O‘zbekiston havosi dunyodagi eng iflos 10 mamlakat qatorida, avtomobillar soni esa 5 millionga yetdi</h2>
+  <div class="body" style="grid-template-rows:auto auto auto">
+    <div class="big4">
+      <div class="stat red"><span class="v num">39<small> µg/m³</small></span><span class="l">Toshkentda 2025 yilgi o‘rtacha PM2.5: JSST me’yoridan (5) <b>7.8 barobar</b> ko‘p</span><span class="s">IQAir 2025 hisoboti (2026-yil aprel)</span></div>
+      <div class="stat red"><span class="v num">10-o‘rin</span><span class="l">O‘zbekiston dunyodagi eng iflos mamlakatlar ro‘yxatida (2024 yilda 19-o‘rin edi)</span><span class="s">IQAir 2025 hisoboti</span></div>
+      <div class="stat"><span class="v num">4.98<small> mln</small></span><span class="l">aholiga tegishli avtomobil (2026-yil 1-iyul). Shundan <b>637 706</b> tasi Toshkent shahrida</span><span class="s">Statistika qo‘mitasi, Spot.uz</span></div>
+      <div class="stat"><span class="v num">~3 000</span><span class="l">bevaqt o‘lim har yili Toshkentda PM2.5 sababli; iqtisodiy zarar <b>$488 mln</b>/yil</span><span class="s">Jahon banki (eng so‘nggi baho)</span></div>
+    </div>
+    <div class="chain">
+      <div><b>01 · O‘SISH</b><h4>Avtomobillar ko‘paymoqda</h4><p>~5 mln avtomobil, ko‘chalar sig‘imi esa o‘zgarmaydi. Eski dvigatellar va past sifatli yoqilg‘i.</p></div>
+      <div><b>02 · TIRBANDLIK</b><h4>Chiqindi 2–3 barobar oshadi</h4><p>12 km/soatda 1 km uchun chiqindi 50 km/soatdagidan 2–3 barobar ko‘p.</p></div>
+      <div><b>03 · QAMALISH</b><h4>Inversiya va kanyonlar</h4><p>Kech kuz va qishda sovuq havo qatlami ifloslanishni yerga yaqin ushlab qoladi.</p></div>
+      <div><b>04 · XAVFLI ZONA</b><h4>Chorrahalar, maktablar yonida</h4><p>Transport chiqindisi 0–3 m balandlikda, odam nafas oladigan joyda chiqadi.</p></div>
+      <div><b>05 · KO‘RINMAS</b><h4>Ko‘cha darajasida maʼlumot yo‘q</h4><p>Bir necha stansiya bor xolos. Qaysi ko‘cha va qaysi soat xavfli ekanini hech kim bilmaydi.</p></div>
+    </div>
+    <div class="q">Savol: <em>qaysi ko‘chada, qaysi soatda, qaysi mashinalar</em> sabab xavfli zona paydo bo‘ladi va uni <em>qaysi chora bilan qancha</em> kamaytirish mumkin?</div>
+  </div>
+  <div class="foot"><span>Transport Toshkentdagi PM2.5 ning ~16% i (IQAir), kuzda ulush 25% gacha oshadi (Jahon banki). 2025-yil 10-noyabrda PM2.5 121.6 µg/m³ ga yetdi (Kun.uz).</span><span><a href="https://timesca.com/air-quality-report-shows-central-asias-air-getting-rapidly-worse/" target="_blank" rel="noopener">IQAir 2025</a> · <a href="https://www.spot.uz/oz/2026/08/24/public-cars" target="_blank" rel="noopener">Spot.uz</a> · <a href="https://kun.uz/en/news/2024/10/09/world-bank-report-83-of-tashkent-residents-live-in-high-air-pollution-zones" target="_blank" rel="noopener">Jahon banki</a></span></div>
+</div></section>
+
+<!-- 3 REAL DATA ANALYSIS -->
+<section class="slide" id="s-tahlil" data-k="tahlil" data-t="Real tahlil"><div class="fit">
+  <div class="kick">2 · Real maʼlumotlar tahlili</div>
+  <h2 class="st">Oxirgi 60 kun: ifloslanish tirbandlik soatlari va havo qatlami bilan birga o‘zgaradi</h2>
+  <div class="body" style="grid-template-rows:auto 1fr">
+    <div class="find" id="finds"></div>
+    <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:18px;min-height:0">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div><h3>Sutka davomida: ish kuni va dam olish kuni</h3><p class="hint">Ish kunlari kechqurun va ertalab ko‘tarilish: avtomobillar izi</p></div>
+          <div class="seg" id="an-pol"><button data-v="no2" aria-pressed="true">NO₂</button><button data-v="co" aria-pressed="false">CO</button><button data-v="pm" aria-pressed="false">PM2.5</button></div>
+        </div>
+        <div id="an-diurnal" style="margin-top:6px"></div>
+        <div class="lg"><span><i style="background:var(--bad)"></i>Ish kunlari (Du–Ju)</span><span><i style="background:var(--blue)"></i>Dam olish (Sh–Ya)</span><span><i style="background:#f2c7c7;height:10px"></i>Tirbandlik soatlari</span></div>
+      </div>
+      <div style="display:grid;grid-template-rows:1fr 1fr;gap:18px;min-height:0">
+        <div class="card"><h3 style="font-size:17px">Kunlik o‘rtacha: kuz kelishi bilan o‘sish</h3><div id="an-trend"></div></div>
+        <div class="card"><h3 style="font-size:17px">Havo qatlami past bo‘lsa, ifloslanish qamaladi</h3><div id="an-blh"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span id="an-src">Manba: Copernicus CAMS (ECMWF), Open-Meteo API, Toshkent markazi 41.31°N 69.28°E, soatlik.</span><span class="live off" id="an-live">snapshot</span></div>
+</div></section>
+
+<!-- 4 MODEL ARCHITECTURE -->
+<section class="slide" id="s-model" data-k="model" data-t="Model"><div class="fit">
+  <div class="kick">3 · Matematik model</div>
+  <h2 class="st">Mashinadan o‘pkagacha: to‘rt bog‘langan model, ustida sunʼiy intellekt</h2>
+  <div class="body" style="grid-template-rows:auto auto 1fr">
+    <div class="flow" id="flow">
+      <button class="blk" data-m="0" aria-pressed="true"><span class="n">01 · TRAFIK</span><h4>Qancha mashina, qanday tezlikda</h4><p>Ko‘cha bo‘yicha zichlik va tezlik</p></button>
+      <button class="blk" data-m="1" aria-pressed="false"><span class="n">02 · EMISSIYA</span><h4>Har bir mashina qancha chiqaradi</h4><p>Yoqilg‘i, Evro sinfi, tezlik</p></button>
+      <button class="blk" data-m="2" aria-pressed="false"><span class="n">03 · TARQALISH</span><h4>Ifloslanish qayerga boradi</h4><p>Shamol, diffuziya, havo qatlami</p></button>
+      <button class="blk" data-m="3" aria-pressed="false"><span class="n">04 · ZARAR</span><h4>Sog‘liq va iqtisod</h4><p>Konsentratsiya → o‘lim → dollar</p></button>
+    </div>
+    <button class="aiband" data-m="4" aria-pressed="false"><b>AI</b><span>Gradient boosting: noma’lum parametrlarni maʼlumotdan o‘rganadi, xatoni tuzatadi va 24 soat oldin prognoz beradi. Bosing.</span></button>
+    <div class="detail">
+      <div class="card" style="gap:12px">
+        <div class="kick" id="md-k">01 · Trafik oqimi modeli (LWR, Greenshields)</div>
+        <div class="tex" id="md-tex"></div>
+        <ul class="vars" id="md-vars"></ul>
+      </div>
+      <div class="card" style="gap:10px">
+        <h3>Oddiy tilda</h3>
+        <p class="plain" id="md-plain"></p>
+        <div style="margin-top:auto" class="how" id="md-how"></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Bloklarni bosing: har birining tenglamasi, o‘zgaruvchilari va maʼnosi chiqadi.</span><span>Sonli yechim: chekli hajmlar usuli, 50 m to‘r, upwind sxema</span></div>
+</div></section>
+
+<!-- 5 LAB -->
+<section class="slide" id="s-lab" data-k="lab" data-t="Laboratoriya"><div class="fit">
+  <div class="kick">4 · Model laboratoriyasi</div>
+  <h2 class="st">Tenglamalarni o‘zingiz sinab ko‘ring: parametrni o‘zgartiring, natija darhol hisoblanadi</h2>
+  <div class="body labs">
+    <div class="card lab">
+      <h3>A. Tirbandlik → tezlik → chiqindi</h3>
+      <p class="hint">Greenshields modeli va COPERT tipidagi EF(v)</p>
+      <div class="ctl"><label for="lab-rho">Ko‘chadagi zichlik <b id="lab-rho-v">60 avto/km/qator</b></label><input type="range" id="lab-rho" min="5" max="135" value="60"></div>
+      <div id="lab-a-chart"></div>
+      <div class="res"><div><span>Tezlik</span><b id="la-v">–</b></div><div><span>Chiqindi × (50 km/soatga nisbatan)</span><b id="la-f">–</b></div><div><span>NOₓ, g/km·soat</span><b id="la-e">–</b></div></div>
+    </div>
+    <div class="card lab">
+      <h3>B. Bitta mashinaning chiqindisi</h3>
+      <p class="hint">Yoqilg‘i turi, Evro sinfi va tezlikka bog‘liq</p>
+      <div style="display:flex;gap:8px"><select id="lab-t" aria-label="Transport turi" style="flex:1"></select><select id="lab-e" aria-label="Evro sinfi"><option value="0">Evro-0…2</option><option value="1" selected>Evro-3/4</option><option value="2">Evro-5/6</option></select></div>
+      <div class="ctl"><label for="lab-v">Tezlik <b id="lab-v-v">25 km/soat</b></label><input type="range" id="lab-v" min="5" max="90" value="25"></div>
+      <table class="mtbl"><thead><tr><th>Modda</th><th>g/km</th><th>yiliga</th><th>elektrga nisbatan</th></tr></thead><tbody id="lab-b-tb"></tbody></table>
+      <div class="verd" id="lab-b-v"></div>
+    </div>
+    <div class="card lab">
+      <h3>C. Ko‘chadan tarqalish (Gauss yechimi)</h3>
+      <p class="hint">Gorizontal chiziq: 2 km ko‘cha. Rang: NO₂ ning JSST me’yoriga nisbati</p>
+      <canvas id="lab-c" width="440" height="230" aria-label="Tarqalish xaritasi"></canvas>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 14px">
+        <div class="ctl"><label for="lc-q">Oqim <b id="lc-q-v">3000/soat</b></label><input type="range" id="lc-q" min="500" max="8000" step="250" value="3000"></div>
+        <div class="ctl"><label for="lc-u">Shamol <b id="lc-u-v">1.5 m/s</b></label><input type="range" id="lc-u" min="0.5" max="8" step="0.1" value="1.5"></div>
+        <div class="ctl"><label for="lc-a">Yo‘nalish <b id="lc-a-v">90°</b></label><input type="range" id="lc-a" min="0" max="180" step="5" value="90"></div>
+        <div class="ctl"><label for="lc-s">Barqarorlik <b id="lc-s-v">D</b></label><input type="range" id="lc-s" min="0" max="4" step="1" value="2"></div>
+      </div>
+      <div class="res"><div><span>Yo‘l chetida NO₂</span><b id="lc-r1">–</b></div><div><span>200 m da</span><b id="lc-r2">–</b></div><div><span>Me’yorgacha masofa</span><b id="lc-r3">–</b></div></div>
+    </div>
+  </div>
+  <div class="foot"><span>A: v = v_f(1−ρ/ρ_max) · B: EF(v) = EF₅₀(25/v + 0.4 + v/500) × Evro koeffitsienti · C: C = Q/(π u σy σz)·exp(−y²/2σy²), Briggs shahar koeffitsientlari</span><span>Shu formulalar 6-slayddagi simulyatsiyada ishlaydi</span></div>
+</div></section>
+
+<!-- 6 SIMULATION -->
+<section class="slide" id="s-sim" data-k="sim" data-t="Simulyatsiya">
+  <div id="map"></div>
+  <canvas id="ov" aria-hidden="true"></canvas>
+  <div class="panel guide" id="guide"><b style="white-space:nowrap">Qanday ishlatish:</b><ol><li>Istalgan mashinani bosing</li><li>Chap paneldan chorani yoqing</li><li>Shamol va soatni o‘zgartiring</li></ol><button id="guide-x" aria-label="Yopish">✕</button></div>
+  <div class="panel pl" id="pl">
+    <div class="ph"><h3>Boshqaruv</h3><span class="eyebrow" id="clock">08:00</span></div>
+    <div class="ctl"><span class="l">Mavsum</span>
+      <div class="seg" id="season"><button data-v="qish" aria-pressed="false">Qish</button><button data-v="kuz" aria-pressed="true">Kuz</button><button data-v="yoz" aria-pressed="false">Yoz</button></div></div>
+    <div class="ctl"><label for="hour">Soat <b id="hour-v">08:00</b></label><div class="row"><input type="range" id="hour" min="0" max="23" value="8"><button class="btn" id="play" aria-label="Kun bo‘yi">▶</button></div></div>
+    <div class="ctl"><label for="wdir">Shamol qayerdan <b id="wdir-v">45°</b></label><input type="range" id="wdir" min="0" max="355" step="5" value="45"></div>
+    <div class="ctl"><label for="wspd">Shamol tezligi <b id="wspd-v">1.6 m/s</b></label><input type="range" id="wspd" min="0.5" max="8" step="0.1" value="1.6"></div>
+    <div class="row" style="margin-bottom:10px"><button class="btn pri" id="liveWx" style="flex:1">⟳ Hozirgi ob-havoni olish</button></div>
+    <div class="status" id="wx-st" style="margin:-4px 0 8px"></div>
+    <div class="ctl"><span class="l">Ko‘rsatkich</span>
+      <div class="seg" id="pol"><button data-v="no2" aria-pressed="true">NO₂</button><button data-v="pm" aria-pressed="false">PM2.5</button><button data-v="co" aria-pressed="false">CO</button></div></div>
+    <div class="ctl"><span class="l">Qatlam</span>
+      <div class="seg" id="layer"><button data-v="inc" aria-pressed="true">Transport tutuni</button><button data-v="tot" aria-pressed="false">JSST nisbati</button></div></div>
+    <div class="ctl"><label for="spd">Tezlik <b id="spd-v">×3</b></label><input type="range" id="spd" min="1" max="10" value="3"></div>
+    <div class="ph" style="margin-top:12px"><h3>Chora-tadbirlar</h3><button class="btn" id="reset" style="padding:5px 9px">Tiklash</button></div>
+    <div class="chips" id="scn">
+      <button class="chip" data-k="transit" aria-pressed="false"><span class="box"></span><span>Jamoat transporti: trafik −30%<small>Metro, BRT, avtobus chastotasi</small></span></button>
+      <button class="chip" data-k="lez" aria-pressed="false"><span class="box"></span><span>Ekologik zona (LEZ)<small>Evro-2 va pastga markazga kirish taqiqi</small></span></button>
+      <button class="chip" data-k="ebus" aria-pressed="false"><span class="box"></span><span>Elektr avtobuslar<small>Avtobuslarning 80% elektrga</small></span></button>
+      <button class="chip" data-k="truck" aria-pressed="false"><span class="box"></span><span>Yuk mashinalari cheklovi<small>Kunduzi shahar ichiga kirmaydi</small></span></button>
+      <button class="chip" data-k="smart" aria-pressed="false"><span class="box"></span><span>Aqlli svetoforlar<small>Tirbandlik kamayadi</small></span></button>
+      <button class="chip" data-k="green" aria-pressed="false"><span class="box"></span><span>Yashil himoya polosalari<small>Yo‘l bo‘yida PM cho‘kishi ×3</small></span></button>
+    </div>
+    <div class="status" id="net-st">Ko‘chalar yuklanmoqda…</div>
+  </div>
+  <div class="panel pr" id="pr">
+    <div>
+      <div class="ph"><h3>Jonli ko‘rsatkichlar</h3><span class="eyebrow">ekrandagi hudud</span></div>
+      <div class="kpis">
+        <div class="kp"><span>Yo‘ldagi avtomobillar</span><b id="k-cars">–</b></div>
+        <div class="kp"><span>O‘rtacha tezlik</span><b id="k-v">–</b></div>
+        <div class="kp"><span>NOₓ chiqindisi</span><b id="k-nox">–</b></div>
+        <div class="kp"><span>PM2.5 chiqindisi</span><b id="k-pm">–</b></div>
+        <div class="kp"><span>CO chiqindisi</span><b id="k-co">–</b></div>
+        <div class="kp"><span>CO₂ chiqindisi</span><b id="k-co2">–</b></div>
+        <div class="kp wide dmg"><span>Sog‘liqqa zarar (shu soat sur’atida)</span><b id="k-dmg">–</b></div>
+        <div class="kp wide"><span id="k-max-l">Eng yuqori NO₂</span><b id="k-max">–</b></div>
+      </div>
+    </div>
+    <div>
+      <div class="ph" style="margin-bottom:2px"><h3 style="font-size:12.5px">Kim ifloslantiryapti?</h3></div>
+      <div class="stack" id="stack-cnt"></div><div class="sh"><span>avtomobillar soni bo‘yicha</span></div>
+      <div class="stack" id="stack-nox"></div><div class="sh"><span>NOₓ chiqindisi bo‘yicha</span><span id="stack-note"></span></div>
+    </div>
+    <div class="carcard" id="car" hidden></div>
+  </div>
+  <div class="panel pb">
+    <div class="legend" id="fuel-lg"></div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)"><span id="ramp-l">NO₂</span><canvas class="ramp" id="ramp" width="170" height="8"></canvas><span id="ramp-r">60+</span></div>
+    <button class="btn" id="bm" style="padding:5px 9px">Xarita: sunʼiy yo‘ldosh</button>
+  </div>
+</section>
+
+<!-- 7 AI -->
+<section class="slide" id="s-ai" data-k="ai" data-t="AI prognoz"><div class="fit">
+  <div class="kick">5 · Sunʼiy intellekt</div>
+  <h2 class="st">Matematik model yetmagan joyda AI: real maʼlumotdan o‘rganadi va keyingi 24 soatni bashorat qiladi</h2>
+  <div class="body aigrid">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div class="seg" id="ai-pol"><button data-v="no2" aria-pressed="true">NO₂</button><button data-v="pm" aria-pressed="false">PM2.5</button><button data-v="co" aria-pressed="false">CO</button></div>
+        <span class="live off" id="ai-live">tayyorlanmoqda</span>
+      </div>
+      <div id="ai-chart" style="margin-top:8px"></div>
+      <div class="lg" id="ai-lg"></div>
+      <div class="callout" id="ai-call"></div>
+    </div>
+    <div class="card">
+      <h3>Aniqlik (oxirgi 10 kun, model ko‘rmagan)</h3>
+      <p class="hint">O‘rtacha absolyut xato, µg/m³: kichik bo‘lsa yaxshi</p>
+      <div class="metrics" id="ai-m"></div>
+      <h3 style="margin-top:16px">AI nimaga tayanadi</h3>
+      <div class="bars" id="ai-imp"></div>
+      <div class="callout" id="ai-why" style="font-size:14.5px"></div>
+    </div>
+  </div>
+  <div class="foot"><span id="ai-src">Model: gradient boosting (140 daraxt, chuqurlik 4), brauzerda o‘qitiladi. Kirish: soat, hafta kuni, shamol, harorat, havo qatlami balandligi, 24 soat oldingi qiymat.</span><span>Real tizimda: O‘zgidromet + ko‘cha sensorlari</span></div>
+</div></section>
+
+<!-- 8 SOLUTION CALCULATOR -->
+<section class="slide" id="s-yechim" data-k="yechim" data-t="Yechim"><div class="fit">
+  <div class="kick">6 · Yechim</div>
+  <h2 class="st">Choralar kalkulyatori: har bir qarorning natijasi hayot, dollar va tonnalarda</h2>
+  <div class="body calc">
+    <div class="card" style="gap:10px">
+      <h3>Choralar darajasini tanlang</h3>
+      <div class="sl">
+        <div class="ctl"><label for="c-tr"><span>Jamoat transportiga o‘tish</span><b id="c-tr-v">20%</b></label><input type="range" id="c-tr" min="0" max="40" step="5" value="20"><small>Metro, BRT, avtobus chastotasi. Trafik kamayadi va tezlik oshadi</small></div>
+        <div class="ctl"><label for="c-lez"><span>Ekologik zona: eski avtomobillarni almashtirish</span><b id="c-lez-v">50%</b></label><input type="range" id="c-lez" min="0" max="100" step="10" value="50"><small>Evro-2 va undan past avtomobillarning qanchasi yangilanadi</small></div>
+        <div class="ctl"><label for="c-eb"><span>Elektr avtobuslar ulushi</span><b id="c-eb-v">60%</b></label><input type="range" id="c-eb" min="0" max="100" step="10" value="60"></div>
+        <div class="ctl"><label for="c-tk"><span>Yuk mashinalarini tunga o‘tkazish</span><b id="c-tk-v">50%</b></label><input type="range" id="c-tk" min="0" max="100" step="10" value="50"></div>
+        <div class="ctl"><label for="c-sm"><span>Aqlli svetoforlar: tezlik oshishi</span><b id="c-sm-v">+4 km/soat</b></label><input type="range" id="c-sm" min="0" max="10" step="1" value="4"></div>
+        <div class="ctl"><label for="c-gr"><span>Yashil himoya polosalari</span><b id="c-gr-v">10%</b></label><input type="range" id="c-gr" min="0" max="20" step="2" value="10"><small>Yo‘l bo‘yidagi PM ning ushlab qolinadigan qismi</small></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-rows:auto auto 1fr;gap:16px;min-height:0">
+      <div class="outs">
+        <div><span>Transport PM-ekvivalenti</span><b id="o-pm">–</b></div>
+        <div><span>NOₓ chiqindisi</span><b id="o-nox">–</b></div>
+        <div><span>Saqlanadigan hayotlar, yiliga</span><b id="o-life">–</b></div>
+        <div><span>Iqtisodiy samara, yiliga</span><b id="o-usd">–</b></div>
+      </div>
+      <div class="card" style="padding:14px 18px"><h3 style="font-size:16px">Har bir choraning ulushi (PM-ekvivalent kamayishi)</h3><div class="contrib" id="o-contrib"></div></div>
+      <div class="card" style="padding:14px 18px;min-height:0;overflow:hidden"><h3 style="font-size:16px">Simulyatsiyadagi xavfli nuqtalar (jonli)</h3><p class="hint" id="hot-h" style="font-size:13px">Simulyatsiya ishga tushgach chiqadi</p><ol class="hotl" id="hotl"></ol></div>
+    </div>
+  </div>
+  <div class="foot"><span>Sog‘liq samarasi: transport hissasi ~18% × Jahon banki bahosi (yiliga ~3 000 o‘lim, $488 mln), birinchi yaqinlashish. CO₂ kamayishi alohida ko‘rsatiladi.</span><span id="o-co2"></span></div>
+</div></section>
+
+<!-- 9 PLAN -->
+<section class="slide" id="s-reja" data-k="reja" data-t="Joriy etish"><div class="fit">
+  <div class="kick">7 · Joriy etish</div>
+  <h2 class="st">Bir tumandan butun shahargacha: 12 oyda boshqaruv tizimi</h2>
+  <div class="body" style="grid-template-rows:auto auto auto">
+    <div class="road">
+      <div><b>0–3 OY</b><h4>Pilot: Chilonzor</h4><p>10 ta arzon PM/NO₂ sensori, trafik API, AI'ni real sensorga kalibrlash</p></div>
+      <div><b>3–6 OY</b><h4>Ogohlantirish</h4><p>Telegram-bot va hokimlik paneli: ertangi xavfli soatlar va ko‘chalar</p></div>
+      <div><b>6–12 OY</b><h4>Boshqaruv</h4><p>Svetoforlar va yuk rejimini prognoz asosida avtomatik boshqarish</p></div>
+      <div><b>1–2 YIL</b><h4>Butun shahar</h4><p>Barcha tumanlar, COMSOL bilan kalibrlangan kanyon modeli, ochiq API</p></div>
+    </div>
+    <div class="who">
+      <div><b>Hokimlik</b><p>Ekologik zona, yashil polosalar, xavfli nuqtalar ro‘yxati</p></div>
+      <div><b>Transport vazirligi</b><p>Elektr avtobuslar, jamoat transporti yo‘nalishlari</p></div>
+      <div><b>YHXBB</b><p>Aqlli svetoforlar, yuk rejimi, ekologik tekshiruv</p></div>
+      <div><b>Ekologiya qo‘mitasi</b><p>Sensorlar tarmog‘i, ochiq maʼlumotlar</p></div>
+      <div><b>Aholi va maktablar</b><p>Xavfli soatlar haqida ogohlantirish, “tanaffus ichkarida” signali</p></div>
+    </div>
+    <div class="closing">
+      <div><b>Ko‘radi</b><span>Ko‘cha darajasida, 50 m aniqlikda, qaysi mashina qancha chiqarayotganini</span></div>
+      <div><b>Oldindan aytadi</b><span>AI 24 soat oldin xavfli soat va hududni bashorat qiladi</span></div>
+      <div><b>Hisoblaydi</b><span>Har bir chora necha hayot va necha million dollar tejashini</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>Ochiq tomonlar: avtopark tarkibi ekspert bahosi (YHXBB maʼlumoti bilan aniqlashtiriladi), CAMS 10 km aniqlikdagi model maʼlumoti.</span><span>TozaYo‘l · OpenStreetMap · Esri · Copernicus CAMS · Open-Meteo</span></div>
+</div></section>
+</main>
+<script>
+"use strict";
+/* =============== CORE (Gaussian physics + AI, from v1) =============== */
+const CORE=(function(){
+const PI=Math.PI, rad=d=>d*PI/180, clamp=(v,a,b)=>v<a?a:v>b?b:v;
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gaussF(r){return ()=>{let u=0;while(u===0)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*PI*r())}}
+
+const LAT0=41.31,LNG0=69.265,KX=83634,KY=111000;
+const ll=(la,lo)=>[(lo-LNG0)*KX,(la-LAT0)*KY];
+const xy2ll=(x,y)=>[LAT0+y/KY,LNG0+x/KX];
+const X0=-8000,X1=8050,Y0=-7200,Y1=6900,CELL=150;
+const NX=Math.round((X1-X0)/CELL),NY=Math.round((Y1-Y0)/CELL),NC=NX*NY;
+
+const CLS={
+  mag:{v0:60,vc:1.02,mix:{b:.42,g:.38,d:.09,a:.04,y:.07}},
+  asos:{v0:50,vc:0.95,mix:{b:.42,g:.38,d:.11,a:.04,y:.05}},
+  halqa:{v0:60,vc:0.98,mix:{b:.40,g:.35,d:.09,a:.03,y:.13}},
+  katta:{v0:70,vc:0.85,mix:{b:.32,g:.30,d:.06,a:.01,y:.31}}
+};
+const ROADS=[
+ {n:"Amir Temur shoh ko‘chasi",c:"mag",L:8,cy:true,p:[[41.3111,69.2797],[41.3250,69.2830],[41.3400,69.2860],[41.3560,69.2880],[41.3700,69.2895]]},
+ {n:"Shota Rustaveli ko‘chasi",c:"asos",L:6,cy:true,p:[[41.3050,69.2720],[41.2950,69.2650],[41.2800,69.2570],[41.2650,69.2500],[41.2520,69.2450]]},
+ {n:"Bunyodkor shoh ko‘chasi",c:"mag",L:8,cy:false,p:[[41.3080,69.2440],[41.2950,69.2280],[41.2850,69.2120],[41.2750,69.1950],[41.2680,69.1780]]},
+ {n:"Buyuk Ipak Yo‘li ko‘chasi",c:"mag",L:8,cy:false,p:[[41.3111,69.2797],[41.3140,69.2950],[41.3200,69.3100],[41.3260,69.3300],[41.3310,69.3550]]},
+ {n:"Navoiy ko‘chasi",c:"asos",L:6,cy:true,p:[[41.3260,69.2350],[41.3200,69.2480],[41.3150,69.2600],[41.3120,69.2720],[41.3111,69.2797]]},
+ {n:"Beruniy ko‘chasi",c:"asos",L:6,cy:false,p:[[41.3260,69.2350],[41.3350,69.2200],[41.3450,69.2050],[41.3560,69.1880]]},
+ {n:"Chilonzor ko‘chasi",c:"asos",L:6,cy:false,p:[[41.2990,69.2420],[41.2900,69.2220],[41.2800,69.2060],[41.2700,69.1880]]},
+ {n:"Mirzo Ulug‘bek ko‘chasi",c:"asos",L:6,cy:false,p:[[41.3200,69.3000],[41.3300,69.3150],[41.3400,69.3300],[41.3490,69.3480]]},
+ {n:"Abdulla Qodiriy ko‘chasi",c:"asos",L:4,cy:true,p:[[41.3200,69.2560],[41.3330,69.2640],[41.3470,69.2700],[41.3600,69.2740]]},
+ {n:"Mirobod ko‘chasi",c:"asos",L:4,cy:true,p:[[41.3050,69.2810],[41.2930,69.2890],[41.2800,69.2990]]},
+ {n:"Farg‘ona yo‘li",c:"mag",L:6,cy:false,p:[[41.2960,69.2980],[41.2860,69.3200],[41.2760,69.3450],[41.2700,69.3600]]},
+ {n:"Muqimiy ko‘chasi",c:"asos",L:4,cy:false,p:[[41.2930,69.2420],[41.2800,69.2380],[41.2620,69.2320]]},
+ {n:"Kichik halqa yo‘li",c:"halqa",L:6,cy:false,ring:{cx:-300,cy:-100,rx:3900,ry:3300}},
+ {n:"Katta halqa yo‘li",c:"katta",L:6,cy:false,ring:{cx:200,cy:-300,rx:7700,ry:6600}}
+];
+function ringPts(o,n=120){const a=[];for(let k=0;k<=n;k++){const t=2*PI*k/n,w=1+0.035*Math.sin(3*t)+0.025*Math.cos(5*t+1);a.push([o.cx+o.rx*w*Math.cos(t),o.cy+o.ry*w*Math.sin(t)])}return a}
+ROADS.forEach(r=>{r.xy=r.ring?ringPts(r.ring):r.p.map(q=>ll(q[0],q[1]))});
+
+// sources (point discretisation every ~40 m)
+const SRCL=[];
+ROADS.forEach((r,ri)=>{for(let s=0;s<r.xy.length-1;s++){const [ax,ay]=r.xy[s],[bx,by]=r.xy[s+1];const L=Math.hypot(bx-ax,by-ay);if(L<1)continue;const n=Math.max(1,Math.ceil(L/40)),ux=(bx-ax)/L,uy=(by-ay)/L;
+  for(let k=0;k<n;k++){const t=(k+.5)/n,x=ax+(bx-ax)*t,y=ay+(by-ay)*t;if(x<X0-2500||x>X1+2500||y<Y0-2500||y>Y1+2500)continue;SRCL.push([x,y,ux,uy,L/n,ri])}}});
+const NS=SRCL.length,SX=new Float64Array(NS),SY=new Float64Array(NS),SUX=new Float64Array(NS),SUY=new Float64Array(NS),SDS=new Float64Array(NS),SRI=new Int16Array(NS);
+SRCL.forEach((s,i)=>{SX[i]=s[0];SY[i]=s[1];SUX[i]=s[2];SUY[i]=s[3];SDS[i]=s[4];SRI[i]=s[5]});
+
+const POIS=[
+ {n:"Maktab (namuna) A",t:"maktab",p:[41.3350,69.2878]},
+ {n:"Bog‘cha (namuna) B",t:"bogcha",p:[41.2880,69.2204]},
+ {n:"Shifoxona (namuna) C",t:"shifo",p:[41.2830,69.2600]},
+ {n:"Maktab (namuna) D",t:"maktab",p:[41.3405,69.2138]},
+ {n:"Bog‘cha (namuna) E",t:"bogcha",p:[41.3218,69.3088]},
+ {n:"Maktab (namuna) F",t:"maktab",p:[41.2857,69.2126]},
+ {n:"Maktab (namuna) G",t:"maktab",p:[41.2868,69.3178]},
+ {n:"Bog‘cha (namuna) H",t:"bogcha",p:[41.3360,69.3214]},
+ {n:"Shifoxona (namuna) I",t:"shifo",p:[41.3176,69.2556]},
+ {n:"Maktab (namuna) J",t:"maktab",p:[41.3020,69.2905]}
+].map(o=>({...o,xy:ll(o.p[0],o.p[1])}));
+const SENS=[
+ {n:"Markaz (Amir Temur xiyoboni)",p:[41.3122,69.2815]},
+ {n:"Chilonzor",p:[41.2835,69.2070]},
+ {n:"Yunusobod",p:[41.3550,69.2870]},
+ {n:"Mirzo Ulug‘bek",p:[41.3380,69.3330]},
+ {n:"Yakkasaroy (janub)",p:[41.2700,69.2525]}
+].map(o=>({...o,xy:ll(o.p[0],o.p[1])}));
+const DISTR=[["Chilonzor",41.276,69.205],["Yunusobod",41.362,69.300],["Mirzo Ulug‘bek",41.333,69.345],["Yakkasaroy",41.285,69.262],["Mirobod",41.296,69.300],["Shayxontohur",41.322,69.228],["Olmazor",41.350,69.215],["Yashnobod",41.300,69.335],["Uchtepa",41.300,69.185],["Sergeli",41.250,69.230]].map(d=>({n:d[0],xy:ll(d[1],d[2])}));
+const CANAL=[[41.372,69.252],[41.350,69.256],[41.333,69.258],[41.318,69.262],[41.305,69.268],[41.290,69.274],[41.270,69.282],[41.250,69.290]].map(q=>ll(q[0],q[1]));
+
+// emissions
+const EF={b:[0.35,1.8,0.004,0.022],g:[0.45,1.2,0.002,0.022],d:[0.6,3.0,0.006,0.025],a:[7.5,2.5,0.18,0.08],y:[5.5,2.0,0.15,0.07]};
+const VK=["b","g","d","a","y"];
+const PROF=[0.18,0.12,0.09,0.08,0.10,0.22,0.50,0.88,1.00,0.86,0.72,0.70,0.72,0.70,0.70,0.74,0.82,0.95,1.00,0.88,0.68,0.52,0.38,0.26];
+const PEAK=new Set([7,8,9,17,18,19]);
+const BASE_SCN={traffic:0,old:45,ev:0,truck:false,smart:false,green:false};
+function roadState(r,hour,scn,dayF){
+  const C=CLS[r.c],cap=r.L*1600;
+  const V0=cap*C.vc*PROF[hour]*dayF*(1+scn.traffic/100);
+  const truckF=(scn.truck&&PEAK.has(hour)&&r.c!=="katta")?0.15:1;
+  const vol={};let Vt=0;
+  for(const k of VK){vol[k]=V0*C.mix[k]*(k==="y"?truckF*Math.pow(PROF[hour],-0.35):1);Vt+=vol[k]}
+  const vc=Vt/cap,alpha=scn.smart?0.45:0.8,v=Math.max(8,C.v0/(1+alpha*Math.pow(vc,4)));
+  const sm=Math.min(3,Math.pow(C.v0/v,0.6)),om=(1+1.6*scn.old/100)/(1+1.6*0.45);
+  let nox=0,co=0,pe=0,pn=0;
+  for(const k of VK){const n=vol[k],e=EF[k],ev=k==="a"?(1-scn.ev/100):1,m=sm*om*ev;nox+=n*e[0]*m;co+=n*e[1]*m;pe+=n*e[2]*m;pn+=n*e[3]}
+  // g per km per hour → µg per m per s  (×1e6 /1000 /3600 = /3.6)
+  return {V:Vt,vc,v,ts:vol.y/Vt,q:[nox/3.6,co/3.6,(pe+pn)/3.6],gkm:[nox,co,pe+pn]};
+}
+function roadsAt(hour,scn,dayF=1){return ROADS.map(r=>roadState(r,hour,scn,dayF))}
+
+// meteorology
+const SEASONS={
+ qish:{name:"Qish",T:[-1,6],RH:78,mixD:600,mixN:120,u:1.2,cold:true,bg:{no2:24,pm:38,co:600}},
+ kuz:{name:"Kuz/Bahor",T:[8,19],RH:55,mixD:1100,mixN:250,u:1.8,cold:false,bg:{no2:16,pm:24,co:400}},
+ yoz:{name:"Yoz",T:[23,36],RH:25,mixD:2200,mixN:450,u:2.6,cold:false,bg:{no2:11,pm:22,co:280}}
+};
+function mixAt(h,d,n){if(h<7||h>=21)return n;if(h<13)return n+(d-n)*(h-7)/6;if(h<17)return d;return d+(n-d)*(h-17)/4}
+function autoStab(h,u,cold){const order="ABCDEF";let s;
+  if(h>=9&&h<=16)s=u<2?"B":u<4?"C":"D";else if(h===7||h===8||h===17||h===18)s="D";else s=u<2?"F":u<3.5?"E":"D";
+  if(cold&&(s==="B"||s==="C"))s=order[order.indexOf(s)+1];return s}
+function metFor(season,h,u,dir,stabSel){const S=SEASONS[season];const mix=mixAt(h,S.mixD,S.mixN)+(h<7||h>=21?30*u:0);
+  const T=S.T[0]+(S.T[1]-S.T[0])*(0.5-0.5*Math.cos(2*PI*(h-4)/24));
+  return {u:Math.max(0.5,u),dir,stab:stabSel==="auto"?autoStab(h,u,S.cold):stabSel,mix,T,RH:clamp(S.RH-1.2*(T-(S.T[0]+S.T[1])/2),12,98)}}
+function briggs(st,x){let r;switch(st){case"A":case"B":r=[0.32*x/Math.sqrt(1+4e-4*x),0.24*x*Math.sqrt(1+1e-3*x)];if(st==="A"){r[0]*=1.15;r[1]*=1.15}break;
+  case"C":r=[0.22*x/Math.sqrt(1+4e-4*x),0.20*x];break;case"D":r=[0.16*x/Math.sqrt(1+4e-4*x),0.14*x/Math.sqrt(1+3e-4*x)];break;
+  default:r=[0.11*x/Math.sqrt(1+4e-4*x),0.08*x/Math.sqrt(1+1.5e-3*x)];if(st==="F"){r[0]*=0.8;r[1]*=0.75}}return r}
+const XM=4000,DX=5,NT=XM/DX;
+function sigTable(met){const F=new Float64Array(NT),A=new Float64Array(NT);
+  for(let i=0;i<NT;i++){const x=i*DX+DX/2;let [sy,sz]=briggs(met.stab,x);sy=Math.sqrt(sy*sy+35*35);sz=Math.sqrt(sz*sz+4*4);
+    const zz=Math.min(sz,0.798*met.mix);F[i]=1/(PI*met.u*sy*zz);A[i]=1/(2*sy*sy)}
+  const syM=briggs(met.stab,XM)[0];return {F,A,cross:3*Math.sqrt(syM*syM+35*35)}}
+function srcQ(R){const qn=new Float64Array(NS),qc=new Float64Array(NS),qp=new Float64Array(NS);
+  for(let s=0;s<NS;s++){const q=R[SRI[s]].q,d=SDS[s];qn[s]=q[0]*d;qc[s]=q[1]*d;qp[s]=q[2]*d}return [qn,qc,qp]}
+const GREEN=[0.92,0.95,0.80];
+function fieldGrid(R,met,scn){
+  const T=sigTable(met),F=T.F,A=T.A,th=rad(met.dir),wx=-Math.sin(th),wy=-Math.cos(th);
+  const [qn,qc,qp]=srcQ(R),nox=new Float32Array(NC),co=new Float32Array(NC),pm=new Float32Array(NC);
+  const g=scn.green?GREEN:[1,1,1],cr=T.cross;
+  for(let s=0;s<NS;s++){const sx=SX[s],sy=SY[s],ex=sx+wx*XM,ey=sy+wy*XM;
+    const i0=Math.max(0,Math.floor((Math.min(sx,ex)-cr-X0)/CELL)),i1=Math.min(NX-1,Math.floor((Math.max(sx,ex)+cr-X0)/CELL));
+    const j0=Math.max(0,Math.floor((Math.min(sy,ey)-cr-Y0)/CELL)),j1=Math.min(NY-1,Math.floor((Math.max(sy,ey)+cr-Y0)/CELL));
+    if(i0>i1||j0>j1)continue;
+    const cm=ROADS[SRI[s]].cy?1+0.5*Math.abs(SUX[s]*wy-SUY[s]*wx):1,a=qn[s],b=qc[s],c=qp[s];
+    for(let j=j0;j<=j1;j++){const dy=Y0+(j+.5)*CELL-sy;
+      for(let i=i0;i<=i1;i++){const dx=X0+(i+.5)*CELL-sx,x=dx*wx+dy*wy+20;if(x<1||x>=XM)continue;
+        const y=-dx*wy+dy*wx,k=(x/DX)|0,e=y*y*A[k];if(e>9)continue;let v=F[k]*Math.exp(-e);if(x<150)v*=cm;
+        const id=j*NX+i;if(x<115){nox[id]+=a*v*g[0];co[id]+=b*v*g[1];pm[id]+=c*v*g[2]}else{nox[id]+=a*v;co[id]+=b*v;pm[id]+=c*v}}}}
+  return {nox,co,pm};
+}
+function fieldPts(PX,PY,R,met,scn,T){
+  T=T||sigTable(met);const F=T.F,A=T.A,th=rad(met.dir),wx=-Math.sin(th),wy=-Math.cos(th),n=PX.length;
+  const [qn,qc,qp]=srcQ(R),nox=new Float64Array(n),co=new Float64Array(n),pm=new Float64Array(n),g=scn.green?GREEN:[1,1,1];
+  for(let s=0;s<NS;s++){const sx=SX[s],sy=SY[s],cm=ROADS[SRI[s]].cy?1+0.5*Math.abs(SUX[s]*wy-SUY[s]*wx):1;
+    for(let r=0;r<n;r++){const dx=PX[r]-sx,dy=PY[r]-sy,x=dx*wx+dy*wy+20;if(x<1||x>=XM)continue;const y=-dx*wy+dy*wx,k=(x/DX)|0,e=y*y*A[k];if(e>9)continue;
+      let v=F[k]*Math.exp(-e);if(x<150)v*=cm;const gg=x<115;nox[r]+=qn[s]*v*(gg?g[0]:1);co[r]+=qc[s]*v*(gg?g[1]:1);pm[r]+=qp[s]*v*(gg?g[2]:1)}}
+  return {nox,co,pm};
+}
+const NO2F=0.22;
+function bgFor(season,met){const b=SEASONS[season].bg,m=met.mix<220?1.25:1;return {no2:b.no2*m,pm:b.pm*m,co:b.co*m}}
+const WHO={no2:25,pm:15,co:4000};
+function aqiCalc(c,bp){for(const [cl,ch,il,ih] of bp){if(c<=ch)return Math.round(il+(ih-il)*(Math.max(c,cl)-cl)/(ch-cl))}return 500}
+const BP_PM=[[0,9,0,50],[9.1,35.4,51,100],[35.5,55.4,101,150],[55.5,125.4,151,200],[125.5,225.4,201,300],[225.5,325.4,301,500]];
+const aqiPM=c=>aqiCalc(Math.round(c*10)/10,BP_PM);
+const AQI_CAT=[[50,"Yaxshi","--good"],[100,"O‘rtacha","--mod"],[150,"Sezgir guruhlar uchun zararli","--usg"],[200,"Zararli","--bad"],[300,"Juda zararli","--vbad"],[999,"Xavfli","--haz"]];
+const aqiCat=a=>AQI_CAT.find(c=>a<=c[0]);
+function ratioCat(r){return r<1?["Me’yorda","--good"]:r<2?["Me’yordan yuqori","--mod"]:r<3?["2× yuqori","--usg"]:r<5?["3× yuqori","--bad"]:["5× dan yuqori","--vbad"]}
+
+// cell geometry
+function segDist(px,py,ax,ay,bx,by){const vx=bx-ax,vy=by-ay,L2=vx*vx+vy*vy;let t=L2?((px-ax)*vx+(py-ay)*vy)/L2:0;t=clamp(t,0,1);return Math.hypot(px-ax-t*vx,py-ay-t*vy)}
+function nearestRoad(px,py){let best=1e9,bi=-1;ROADS.forEach((r,ri)=>{for(let s=0;s<r.xy.length-1;s++){const d=segDist(px,py,r.xy[s][0],r.xy[s][1],r.xy[s+1][0],r.xy[s+1][1]);if(d<best){best=d;bi=ri}}});return [bi,best]}
+const CELLROAD=new Int16Array(NC).fill(-1),CITY=new Uint8Array(NC);
+(function(){const K=ROADS[13].ring;for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+(i+.5)*CELL,y=Y0+(j+.5)*CELL,id=j*NX+i;
+  const [ri,d]=nearestRoad(x,y);if(d<=160)CELLROAD[id]=ri;CITY[id]=((x-K.cx)/K.rx)**2+((y-K.cy)/K.ry)**2<=1.02?1:0}})();
+// roadside receptors for profiles (within city)
+const RECX=[],RECY=[];(function(){const ids=[];for(let id=0;id<NC;id++)if(CELLROAD[id]>=0&&CITY[id])ids.push(id);const step=Math.max(1,Math.floor(ids.length/44));
+  for(let k=0;k<ids.length;k+=step){const id=ids[k];RECX.push(X0+(id%NX+.5)*CELL);RECY.push(Y0+(Math.floor(id/NX)+.5)*CELL)}})();
+
+// daily profile + measure effectiveness at roadside receptors
+const MEASURES=[
+ {n:"Trafikni 20% kamaytirish",s:{traffic:-20}},
+ {n:"Yuk mashinalari cheklovi (cho‘qqi)",s:{truck:true}},
+ {n:"Avtobuslarning 50% elektrga",s:{ev:50}},
+ {n:"Eski avtomobillar 45% → 20%",s:{old:20}},
+ {n:"Aqlli svetoforlar",s:{smart:true}},
+ {n:"Yashil himoya polosalari",s:{green:true}}
+];
+function dailyAt(season,u,dir,stabSel,scns){const PX=new Float64Array(RECX),PY=new Float64Array(RECY);const out=scns.map(()=>({nox:[],co:[],pm:[],bg:[]}));
+  for(let h=0;h<24;h++){const met=metFor(season,h,u,dir,stabSel),T=sigTable(met),bg=bgFor(season,met);
+    scns.forEach((sc,si)=>{const f=fieldPts(PX,PY,roadsAt(h,sc),met,sc,T),m=a=>a.reduce((p,c)=>p+c,0)/a.length;out[si].nox.push(m(f.nox));out[si].co.push(m(f.co));out[si].pm.push(m(f.pm));out[si].bg.push(bg)})}
+  return out}
+
+/* ---------- AI: synthetic sensor history + gradient boosting ---------- */
+const HIST=2160,FC=24,TOT=HIST+FC,T_END=Date.UTC(2026,9,20,21);
+let WX=null;
+function genWeather(){const r=rng(20261020),g=gaussF(r);const W={h:[],dow:[],doy:[],T:[],RH:[],u:[],dir:[],mix:[],stab:[],Tm:[],ts:[]};let lu=0,dir=45,tn=0;
+  for(let k=0;k<TOT;k++){const ts=T_END-(HIST-1-k)*3600e3,d=new Date(ts),h=d.getUTCHours(),doy=Math.floor((ts-Date.UTC(d.getUTCFullYear(),0,0))/864e5);
+    const Tm=15+13*Math.cos(2*PI*(doy-200)/365),amp=4+4*clamp((Tm-2)/26,0,1);tn=0.92*tn+0.6*g();const T=Tm+amp*Math.sin(2*PI*(h-10)/24)+tn;
+    lu=0.88*lu+0.32*g();const day=h>=8&&h<=18?0.5*Math.sin(PI*(h-8)/10):0;const u=clamp(1.5*Math.exp(lu)*(1+day),0.4,9);
+    dir+=g()*10+0.03*(((45-dir+540)%360)-180);if(r()<0.008)dir=r()<0.5?225:45;dir=(dir+360)%360;
+    const mixD=clamp(400+55*Tm,350,2200),mixN=0.18*mixD+35*u,mix=mixAt(h,mixD,mixN);
+    W.h.push(h);W.dow.push(d.getUTCDay());W.doy.push(doy);W.T.push(T);W.RH.push(clamp(72-1.3*(T-10)+g()*6,12,98));W.u.push(u);W.dir.push(dir);W.mix.push(mix);W.stab.push(autoStab(h,u,Tm<8));W.Tm.push(Tm);W.ts.push(ts)}
+  return W}
+const dayF=dow=>dow===0?0.75:dow===6?0.9:1;
+const EMC=new Map();
+function roadsCached(h,df,scn,key){const k=key+"|"+h+"|"+df;if(!EMC.has(k))EMC.set(k,roadsAt(h,scn,df));return EMC.get(k)}
+function physSeries(st,scn,key,from,to){const PX=new Float64Array([st.xy[0]]),PY=new Float64Array([st.xy[1]]);const nox=new Float64Array(TOT),pm=new Float64Array(TOT);
+  for(let k=from;k<to;k++){const met={u:WX.u[k],dir:WX.dir[k],stab:WX.stab[k],mix:WX.mix[k]};const f=fieldPts(PX,PY,roadsCached(WX.h[k],dayF(WX.dow[k]),scn,key),met,scn);nox[k]=f.nox[0];pm[k]=f.pm[0]}
+  return {nox,pm}}
+function truthSeries(si,ph){const r=rng(777+si*31),g=gaussF(r);const pm=new Float64Array(HIST),no2=new Float64Array(HIST);let ep=0,en=0;
+  for(let k=0;k<HIST;k++){const h=WX.h[k],Tm=WX.Tm[k],inv=WX.mix[k]<220,u=WX.u[k],RH=WX.RH[k];
+    const heat=(WX.doy[k]>=288&&(h>=18||h<=8))?10*(1+clamp((10-Tm)/10,0,1)):0;
+    const dust=u>4.5?2.5*(u-4.5)**2*(RH<35?1.6:1):0;
+    let bgp=(14+0.9*Math.max(0,12-Tm)+heat+dust)*(inv?1.3:1),bgn=(10+0.4*Math.max(0,15-Tm))*(inv?1.3:1);
+    ep=0.75*ep+g()*0.09;en=0.7*en+g()*0.08;
+    pm[k]=Math.max(2,(bgp+1.5*ph.pm[k]*(inv?1.3:1))*(1+ep));
+    no2[k]=Math.max(2,(bgn+NO2F*1.25*ph.nox[k]*(inv?1.3:1))*(1+en))}
+  return {pm,no2}}
+const FEATN=["Fizik model bahosi","Soat","Soat","Dam olish kuni","Shamol tezligi","Shamol yo‘nalishi","Shamol yo‘nalishi","Harorat","Namlik","Aralashish balandligi","Kecha shu soatda","Oxirgi 24 soat o‘rtachasi"];
+function physVal(pol,k,ph){const Tm=WX.Tm[k];return pol==="pm"?18+0.6*Math.max(0,12-Tm)+ph.pm[k]:12+NO2F*ph.nox[k]}
+function featRow(pol,k,ph,obs,mean24){const h=WX.h[k],d=rad(WX.dir[k]);
+  return [physVal(pol,k,ph),Math.sin(2*PI*h/24),Math.cos(2*PI*h/24),(WX.dow[k]===0||WX.dow[k]===6)?1:0,WX.u[k],Math.sin(d),Math.cos(d),WX.T[k],WX.RH[k],WX.mix[k],obs[k-24],mean24]}
+function trainGB(X,y,opt){const n=y.length,nf=X[0].length,o=Object.assign({trees:140,depth:4,lr:0.08,min:15,bins:32},opt||{});
+  const thr=[],bin=[];for(let f=0;f<nf;f++){const v=X.map(r=>r[f]).sort((a,b)=>a-b),t=[];for(let q=1;q<o.bins;q++){const x=v[Math.floor(q*n/o.bins)];if(!t.length||x>t[t.length-1])t.push(x)}thr.push(t);
+    const b=new Uint8Array(n);for(let i=0;i<n;i++){let lo=0,hi=t.length;const x=X[i][f];while(lo<hi){const m=(lo+hi)>>1;if(t[m]<x)lo=m+1;else hi=m}b[i]=lo}bin.push(b)}
+  const base=y.reduce((a,b)=>a+b,0)/n,pred=new Float64Array(n).fill(base),res=new Float64Array(n),imp=new Float64Array(nf),trees=[];
+  function build(idx,d){let sum=0;for(const i of idx)sum+=res[i];const N=idx.length;if(d>=o.depth||N<2*o.min)return {v:o.lr*sum/N};
+    let bg=1e-9,bf=-1,bb=-1;for(let f=0;f<nf;f++){const nb=thr[f].length+1,hs=new Float64Array(nb),hc=new Int32Array(nb),bf_=bin[f];for(const i of idx){hs[bf_[i]]+=res[i];hc[bf_[i]]++}
+      let ls=0,lc=0;for(let b=0;b<nb-1;b++){ls+=hs[b];lc+=hc[b];const rc=N-lc;if(lc<o.min||rc<o.min)continue;const gn=ls*ls/lc+(sum-ls)**2/rc-sum*sum/N;if(gn>bg){bg=gn;bf=f;bb=b}}}
+    if(bf<0)return {v:o.lr*sum/N};imp[bf]+=bg;const L=[],R=[];for(const i of idx)(bin[bf][i]<=bb?L:R).push(i);return {f:bf,t:thr[bf][bb],l:build(L,d+1),r:build(R,d+1)}}
+  const all=[...Array(n).keys()];
+  for(let t=0;t<o.trees;t++){for(let i=0;i<n;i++)res[i]=y[i]-pred[i];const tr=build(all,0);trees.push(tr);for(let i=0;i<n;i++)pred[i]+=walk(tr,X[i])}
+  return {base,trees,imp}}
+function walk(nd,x){while(nd.v===undefined)nd=x[nd.f]<=nd.t?nd.l:nd.r;return nd.v}
+function gbPredict(m,x){let s=m.base;for(const t of m.trees)s+=walk(t,x);return s}
+
+
+const ai={models:{},ph:{},truth:{}};
+function aiEnsure(si){if(!WX)WX=genWeather();if(!ai.ph[si]){ai.ph[si]=physSeries(SENS[si],BASE_SCN,"base",0,TOT);ai.truth[si]=truthSeries(si,ai.ph[si])}}
+function aiModel(si,pol){const key=si+"|"+pol;if(ai.models[key])return ai.models[key];aiEnsure(si);const ph=ai.ph[si],obs=ai.truth[si][pol];
+  const X=[],y=[],keys=[];for(let k=24;k<HIST;k++){let m24=0;for(let q=k-24;q<k;q++)m24+=obs[q];X.push(featRow(pol,k,ph,obs,m24/24));y.push(obs[k]);keys.push(k)}
+  const split=keys.findIndex(k=>k>=75*24);const m=trainGB(X.slice(0,split),y.slice(0,split));
+  let ea=0,ep=0,ef=0,ss=0,se=0,mean=0;const n=X.length-split;for(let i=split;i<X.length;i++)mean+=y[i]/n;
+  for(let i=split;i<X.length;i++){const pa=gbPredict(m,X[i]);ea+=Math.abs(pa-y[i]);se+=(pa-y[i])**2;ep+=Math.abs(X[i][10]-y[i]);ef+=Math.abs(X[i][0]-y[i]);ss+=(y[i]-mean)**2}
+  const res={m,mae:ea/n,maeP:ep/n,maeF:ef/n,r2:1-se/ss,nTrain:split};ai.models[key]=res;return res}
+function aiForecast(si,pol,M,scn,key){const ph0=ai.ph[si];const ph={nox:new Float64Array(ph0.nox),pm:new Float64Array(ph0.pm)};
+  if(key!=="base"){const f=physSeries(SENS[si],scn,key,HIST,TOT);for(let k=HIST;k<TOT;k++){ph.nox[k]=f.nox[k];ph.pm[k]=f.pm[k]}}
+  const obs=ai.truth[si][pol],full=new Float64Array(TOT);full.set(obs);let m24=0;for(let q=HIST-24;q<HIST;q++)m24+=obs[q];m24/=24;const out=[];
+  for(let k=HIST;k<TOT;k++)out.push(Math.max(0,gbPredict(M.m,featRow(pol,k,ph,full,m24))));return out}
+return {ROADS,xy2ll,SENS,SEASONS,metFor,bgFor,WHO,aqiPM,HIST,TOT,FEATN,BASE_SCN,NO2F,aiModel,aiForecast,truth:ai.truth,wx:()=>WX,autoStab,trainGB,gbPredict};
+})();
+
+/* =============== GEO =============== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const PI=Math.PI,clamp=(v,a,b)=>v<a?a:v>b?b:v,pad=n=>String(n).padStart(2,"0");
+const fmt=(v,d=0)=>{const s=(Math.round(v*10**d)/10**d).toFixed(d);const [a,b]=s.split(".");return a.replace(/\B(?=(\d{3})+(?!\d))/g," ")+(b?"."+b:"")};
+const LAT0=41.311,LNG0=69.2685,KX=111320*Math.cos(LAT0*PI/180),KY=111040;
+const toM=(la,lo)=>[(lo-LNG0)*KX,(la-LAT0)*KY],toLL=(x,y)=>[LAT0+y/KY,LNG0+x/KX];
+const BB={s:41.272,w:69.212,n:41.350,e:69.325};
+const [GX0,GY0]=toM(BB.s,BB.w),[GX1,GY1]=toM(BB.n,BB.e);
+
+/* =============== FLEET =============== */
+// ef: g/km at 50 km/h, Euro-3/4 reference. pm includes 0.015 g/km non-exhaust (tyre, brake, road).
+const VT=[
+ {id:"benzin",n:"Yengil avtomobil",f:"Benzin",c:"#f5a524",sh:.40,L:4.4,W:1.8,ef:{nox:.35,co:1.8,pm:.025,co2:175},km:12000,smoke:[205,200,190]},
+ {id:"metan",n:"Yengil avtomobil",f:"Metan (CNG)",c:"#3ec7e8",sh:.30,L:4.4,W:1.8,ef:{nox:.45,co:1.0,pm:.022,co2:150},km:14000,smoke:[230,238,242]},
+ {id:"propan",n:"Yengil avtomobil",f:"Propan (LPG)",c:"#c3e35c",sh:.10,L:4.4,W:1.8,ef:{nox:.40,co:1.4,pm:.022,co2:160},km:13000,smoke:[225,232,220]},
+ {id:"damas",n:"Mikroavtobus (Damas, Labo)",f:"Benzin / metan",c:"#ff6b9a",sh:.08,L:3.5,W:1.45,ef:{nox:.6,co:3.0,pm:.03,co2:190},km:30000,smoke:[200,195,190]},
+ {id:"avtobus",n:"Shahar avtobusi",f:"Dizel",c:"#e5484d",sh:.03,L:12,W:2.5,ef:{nox:7.5,co:2.5,pm:.26,co2:1100},km:60000,smoke:[70,68,66]},
+ {id:"yuk",n:"Yuk mashinasi",f:"Dizel",c:"#a855f7",sh:.06,L:8,W:2.4,ef:{nox:5.5,co:2.0,pm:.22,co2:800},km:40000,smoke:[80,76,72]},
+ {id:"ev",n:"Elektromobil",f:"Elektr",c:"#22c55e",sh:.03,L:4.6,W:1.9,ef:{nox:0,co:0,pm:.015,co2:0},km:15000,smoke:null},
+ {id:"ebus",n:"Elektr avtobus",f:"Elektr",c:"#16a34a",sh:0,L:12,W:2.5,ef:{nox:0,co:0,pm:.03,co2:0},km:60000,smoke:null}
+];
+const TI=Object.fromEntries(VT.map((t,i)=>[t.id,i]));
+const EURO=[{n:"Evro-0…2",m:1.8,y:[2004,2012]},{n:"Evro-3/4",m:1.0,y:[2013,2019]},{n:"Evro-5/6",m:0.45,y:[2020,2025]}];
+const PMNE=0.015, DMG=0.17; // $/g PM-equivalent (see model eq. 6)
+const PROF=[0.18,0.12,0.09,0.08,0.10,0.22,0.50,0.88,1.00,0.86,0.72,0.70,0.72,0.70,0.70,0.74,0.82,0.95,1.00,0.88,0.68,0.52,0.38,0.26];
+const efSpeed=vk=>{vk=Math.max(vk,5);return 25/vk+0.4+vk/500};
+function vehRates(t,eu,v,R){const T=VT[t],f=efSpeed(v*3.6),m=t===TI.ev||t===TI.ebus?1:EURO[eu].m,km=v/1000*R,ne=PMNE*Math.sqrt(T.L/4.4);
+  return {nox:T.ef.nox*f*m*km,co:T.ef.co*f*m*km,pm:(Math.max(0,T.ef.pm-PMNE)*f*m+ne)*km,co2:T.ef.co2*(0.6+0.4*f)*km}}
+function perKm(t,eu,vk){const T=VT[t],f=efSpeed(vk),m=t===TI.ev||t===TI.ebus?1:EURO[eu].m,ne=PMNE*Math.sqrt(T.L/4.4);
+  return {nox:T.ef.nox*f*m,co:T.ef.co*f*m,pm:Math.max(0,T.ef.pm-PMNE)*f*m+ne,co2:T.ef.co2*(0.6+0.4*f)}}
+
+/* =============== STATE =============== */
+const S={hour:8,season:"kuz",u:1.6,dir:45,pol:"no2",layer:"inc",speed:3,base:"sat",scn:{transit:false,lez:false,ebus:false,truck:false,smart:false,green:false},sel:null,follow:false};
+
+/* =============== ROAD NETWORK =============== */
+const CLS={motorway:{vf:20,lpd:3,w:3.2,n:"Magistral"},trunk:{vf:18,lpd:3,w:3,n:"Shahar magistrali"},primary:{vf:16.5,lpd:3,w:2.6,n:"Asosiy ko‘cha"},secondary:{vf:13.5,lpd:2,w:1.5,n:"Ko‘cha"},tertiary:{vf:11,lpd:1,w:0.7,n:"Mahalla ko‘chasi"}};
+let PATHS=[],NODES=new Map(),PW=null,RREP=8,NBASE=1200,ROADCELL=null;
+const nkey=(x,y)=>Math.round(x)+"_"+Math.round(y);
+function fallbackRoads(){const m={mag:"primary",asos:"secondary",halqa:"trunk",katta:"trunk"};
+  return CORE.ROADS.map(r=>({name:r.n,cls:m[r.c],lanes:r.L,oneway:false,pts:r.xy.map(p=>{const [la,lo]=CORE.xy2ll(p[0],p[1]);return toM(la,lo)})}))}
+async function loadOSM(){
+  const KEY="havoiz-osm-v2";try{const c=localStorage.getItem(KEY);if(c){const d=JSON.parse(c);if(d&&d.r&&d.r.length>50)return {roads:d.r.map(unpack),src:`OpenStreetMap (keshdan) · ${fmt(d.r.length)} ta yo‘l`}}}catch(e){}
+  const q=`[out:json][timeout:40];way["highway"~"^(motorway|trunk|primary|secondary|tertiary)$"](${BB.s},${BB.w},${BB.n},${BB.e});out tags geom;`;
+  const EP=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+  for(const ep of EP){try{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),3500);
+    const r=await fetch(ep,{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ac.signal});clearTimeout(to);if(!r.ok)continue;
+    const j=await r.json();const packed=[];
+    for(const w of j.elements||[]){if(!w.geometry||w.geometry.length<2)continue;const t=w.tags||{};let cls=t.highway;
+      const ow=t.oneway==="yes"||t.oneway==="1"||t.junction==="roundabout";const ln=parseInt(t.lanes)||0;
+      packed.push([t["name:uz"]||t.name||"",cls,ln,ow?1:0,w.geometry.flatMap(g=>[+g.lat.toFixed(5),+g.lon.toFixed(5)])])}
+    if(packed.length<50)continue;try{localStorage.setItem(KEY,JSON.stringify({r:packed}))}catch(e){}
+    return {roads:packed.map(unpack),src:`OpenStreetMap (jonli) · ${fmt(packed.length)} ta yo‘l`}}catch(e){}}
+  return {roads:fallbackRoads(),src:"Oflayn sxema: OSM'ga ulanib bo‘lmadi (14 ta asosiy ko‘cha)"}}
+function unpack(a){const pts=[];for(let i=0;i<a[4].length;i+=2)pts.push(toM(a[4][i],a[4][i+1]));return {name:a[0],cls:a[1],lanes:a[2],oneway:!!a[3],pts}}
+function buildNet(roads){PATHS=[];NODES=new Map();
+  roads.forEach((r,wi)=>{const c=CLS[r.cls]||CLS.tertiary;let lpd=r.lanes?Math.max(1,Math.round(r.oneway?r.lanes:r.lanes/2)):(r.oneway?Math.max(1,c.lpd-1):c.lpd);lpd=Math.min(lpd,4);
+    for(const d of r.oneway?[1]:[1,-1]){const P=d>0?r.pts:[...r.pts].reverse(),n=P.length,xs=new Float64Array(n),ys=new Float64Array(n),cum=new Float64Array(n);
+      for(let i=0;i<n;i++){xs[i]=P[i][0];ys[i]=P[i][1];if(i)cum[i]=cum[i-1]+Math.hypot(xs[i]-xs[i-1],ys[i]-ys[i-1])}
+      if(cum[n-1]<12)continue;const p={xs,ys,cum,len:cum[n-1],cls:r.cls,vf:c.vf,lpd,w:c.w,name:r.name,wi,n:0,end:nkey(xs[n-1],ys[n-1]),two:!r.oneway};
+      const id=PATHS.push(p)-1,k=nkey(xs[0],ys[0]);if(!NODES.has(k))NODES.set(k,[]);NODES.get(k).push(id)}});
+  PW=new Float64Array(PATHS.length);let acc=0,W=0;PATHS.forEach((p,i)=>{acc+=p.len*p.lpd*p.w;PW[i]=acc});W=acc;
+  let laneLen=0;PATHS.forEach(p=>laneLen+=p.len*p.lpd);NBASE=Math.round(clamp(laneLen/40,800,9000));
+  // representation factor so that peak density on primary roads ≈ 0.6 ρmax (Greenshields)
+  RREP=clamp(Math.round(0.5*0.14*W/(NBASE*2.6)),2,30);
+  // road cells for green belts
+  ROADCELL=new Uint8Array(G.nx*G.ny);PATHS.forEach(p=>{for(let i=0;i<p.xs.length-1;i++){const L=p.cum[i+1]-p.cum[i],n=Math.max(1,Math.ceil(L/25));
+    for(let k=0;k<=n;k++){const x=p.xs[i]+(p.xs[i+1]-p.xs[i])*k/n,y=p.ys[i]+(p.ys[i+1]-p.ys[i])*k/n,c=cellOf(x,y);if(c>=0)ROADCELL[c]=1}}})}
+function pickPath(){const r=Math.random()*PW[PW.length-1];let lo=0,hi=PW.length-1;while(lo<hi){const m=(lo+hi)>>1;if(PW[m]<r)lo=m+1;else hi=m}return lo}
+function nextPath(pi){const p=PATHS[pi],L=NODES.get(p.end);if(!L)return -1;let tot=0;const c=[];for(const i of L){const q=PATHS[i];if(q.wi===p.wi&&L.length>1)continue;if(q.wi===p.wi&&q.two&&q!==p&&L.length===1)continue;c.push(i);tot+=q.w*q.lpd}
+  if(!c.length)return -1;let r=Math.random()*tot;for(const i of c){r-=PATHS[i].w*PATHS[i].lpd;if(r<=0)return i}return c[c.length-1]}
+
+/* =============== AGENTS =============== */
+let AG=[],AID=0;
+function pickType(){let r=Math.random(),acc=0;for(let i=0;i<VT.length;i++){acc+=VT[i].sh;if(r<acc)return i}return 0}
+function pickEuro(){const r=Math.random();return r<0.45?0:r<0.85?1:2}
+function spawn(){let t=pickType();if(S.scn.truck&&t===TI.yuk)return null;const a={id:++AID,t,eu:pickEuro(),p:0,s:0,v:0,k:0,lane:0,drv:0.85+Math.random()*0.3,x:0,y:0,ux:1,uy:0,puff:Math.random()};
+  a.yr=EURO[a.eu].y[0]+Math.floor(Math.random()*(EURO[a.eu].y[1]-EURO[a.eu].y[0]+1));applyScn(a);place(a);return a}
+function applyScn(a){if(a.t===TI.avtobus&&S.scn.ebus&&Math.random()<0.8){a.t=TI.ebus;a.wasBus=1}else if(a.t===TI.ebus&&!S.scn.ebus&&a.wasBus){a.t=TI.avtobus}
+  if(S.scn.lez&&a.eu===0&&a.t!==TI.ev&&a.t!==TI.ebus){a.eu=1;a.lezUp=1}else if(!S.scn.lez&&a.lezUp){a.eu=0;a.lezUp=0}}
+function place(a){const pi=pickPath(),p=PATHS[pi];a.p=pi;a.s=Math.random()*p.len;a.k=0;a.lane=(a.t===TI.avtobus||a.t===TI.yuk||a.t===TI.ebus)?0:Math.floor(Math.random()*p.lpd);a.v=p.vf*0.5;p.n++;locate(a)}
+function locate(a){const p=PATHS[a.p];while(a.k<p.cum.length-2&&p.cum[a.k+1]<a.s)a.k++;while(a.k>0&&p.cum[a.k]>a.s)a.k--;const k=a.k,L=p.cum[k+1]-p.cum[k]||1,t=(a.s-p.cum[k])/L;
+  a.ux=(p.xs[k+1]-p.xs[k])/L;a.uy=(p.ys[k+1]-p.ys[k])/L;const off=(p.two?1.9:-((p.lpd-1)*1.6))+a.lane*3.2;a.x=p.xs[k]+(p.xs[k+1]-p.xs[k])*t+a.uy*off;a.y=p.ys[k]+(p.ys[k+1]-p.ys[k])*t-a.ux*off}
+function targetN(){return Math.round(NBASE*PROF[S.hour]*(S.scn.transit?0.7:1)*(S.scn.truck?0.94:1))}
+function stepAgents(dt){const N=targetN();let d=0;
+  const lim=AG.length<N*0.6?600:25;while(AG.length<N&&d<lim){const a=spawn();if(a)AG.push(a);d++}
+  while(AG.length>N&&d<25){const i=Math.floor(Math.random()*AG.length),a=AG[i];if(S.sel===a)S.sel=null;PATHS[a.p].n--;AG[i]=AG[AG.length-1];AG.pop();d++}
+  if(S.scn.truck){for(let i=AG.length-1;i>=0;i--)if(AG[i].t===TI.yuk&&Math.random()<0.02){const a=AG[i];PATHS[a.p].n--;if(S.sel===a)S.sel=null;AG[i]=AG[AG.length-1];AG.pop()}}
+  const ex=S.scn.smart?1.7:1;
+  for(const a of AG){let p=PATHS[a.p];const rho=p.n*RREP/(p.len*p.lpd),x=clamp(rho/0.14,0,0.96);let vt=p.vf*(1-Math.pow(x,ex))*a.drv;
+    if(a.t===TI.avtobus||a.t===TI.yuk||a.t===TI.ebus)vt=Math.min(vt,p.vf*0.8);vt=Math.max(vt,1.3);
+    a.v+=(vt-a.v)*Math.min(1,dt*0.6);a.s+=a.v*dt;
+    while(a.s>=p.len){a.s-=p.len;const ni=nextPath(a.p);p.n--;if(ni<0){place(a);p=PATHS[a.p];break}a.p=ni;a.k=0;p=PATHS[ni];p.n++;a.lane=Math.min(a.lane,p.lpd-1)}
+    locate(a)}}
+
+/* =============== PDE GRID =============== */
+const G={dx:50};G.nx=Math.ceil((GX1-GX0)/G.dx);G.ny=Math.ceil((GY1-GY0)/G.dx);G.n=G.nx*G.ny;
+G.C=[new Float32Array(G.n),new Float32Array(G.n),new Float32Array(G.n)];G.T=new Float32Array(G.n);G.S=[new Float32Array(G.n),new Float32Array(G.n),new Float32Array(G.n)];
+const cellOf=(x,y)=>{const i=Math.floor((x-GX0)/G.dx),j=Math.floor((y-GY0)/G.dx);return i<0||j<0||i>=G.nx||j>=G.ny?-1:j*G.nx+i};
+const TAU={A:400,B:450,C:600,D:900,E:1500,F:2200};
+let MET=null,BG=null;
+function updMet(){MET=CORE.metFor(S.season,S.hour,S.u,S.dir,"auto");BG=CORE.bgFor(S.season,MET);MET.H=clamp(0.08*MET.mix+40,45,160);MET.tau=TAU[MET.stab];MET.K=5+4*MET.u}
+function pdeStep(simT){const nx=G.nx,ny=G.ny,dx=G.dx,th=S.dir*PI/180,ux=-Math.sin(th)*MET.u,uy=-Math.cos(th)*MET.u,K=MET.K;
+  const dtMax=Math.min(0.45*dx/(Math.abs(ux)+Math.abs(uy)+1e-3),dx*dx/(5*K),6);const nsub=Math.max(1,Math.ceil(simT/dtMax)),dt=simT/nsub;
+  const vol=dx*dx*MET.H,kv=1/MET.tau,ax=Math.abs(ux)*dt/dx,ay=Math.abs(uy)*dt/dx,dk=K*dt/(dx*dx),sx=ux>0?-1:1,sy=uy>0?-nx:nx;
+  for(let s=0;s<3;s++){const Sx=G.S[s],dep=S.scn.green?(s===1?3/MET.tau*2:s===0?0.6/MET.tau:0.2/MET.tau):0;
+    for(let it=0;it<nsub;it++){let C=G.C[s],T=G.T;
+      for(let j=1;j<ny-1;j++){const r=j*nx;for(let i=1;i<nx-1;i++){const id=r+i,c=C[id];
+        let v=c-ax*(c-C[id+sx])-ay*(c-C[id+sy])+dk*(C[id+1]+C[id-1]+C[id+nx]+C[id-nx]-4*c)+dt*Sx[id]/vol-dt*kv*c;
+        if(dep&&ROADCELL[id])v-=dt*dep*c;T[id]=v>0?v:0}}
+      G.T=C;G.C[s]=T}
+    Sx.fill(0)}}
+function depositSources(){for(const a of AG){const c=cellOf(a.x,a.y);if(c<0)continue;const r=vehRates(a.t,a.eu,a.v,RREP);a.r=r;G.S[0][c]+=r.nox*1e6;G.S[1][c]+=r.pm*1e6;G.S[2][c]+=r.co*1e6}}
+// pollutant accessors: inc / total (µg/m³)
+const POLI={no2:0,pm:1,co:2},WHO={no2:25,pm:15,co:4000},VMAX={no2:60,pm:12,co:500},PNAME={no2:"NO₂",pm:"PM2.5",co:"CO"};
+function incAt(id,p){const i=POLI[p];return p==="no2"?CORE.NO2F*G.C[0][id]:G.C[i][id]}
+function totAt(id,p){return BG[p]+incAt(id,p)}
+
+/* =============== MAP =============== */
+let map=null,satL,lblL,darkL,ov,octx,W=0,H=0,DPR=1;
+const fieldC=document.createElement("canvas");fieldC.width=G.nx;fieldC.height=G.ny;const fctx=fieldC.getContext("2d"),fimg=fctx.createImageData(G.nx,G.ny);
+const RAMP_I=[[0,[255,236,170],0],[0.06,[255,236,170],.04],[0.2,[255,205,110],.17],[0.45,[248,140,60],.33],[0.75,[226,62,48],.47],[1,[150,30,90],.6]];
+const RAMP_R=[[0,[79,180,119],.0],[0.8,[79,180,119],.12],[1,[227,197,72],.3],[2,[238,139,58],.45],[3,[229,72,77],.56],[5,[162,89,217],.66],[8,[120,30,70],.74]];
+function ramp(R,v){if(v<=R[0][0])return [R[0][1],R[0][2]];for(let i=1;i<R.length;i++)if(v<=R[i][0]){const a=R[i-1],b=R[i],t=(v-a[0])/(b[0]-a[0]);return [[0,1,2].map(c=>a[1][c]+(b[1][c]-a[1][c])*t),a[2]+(b[2]-a[2])*t]}const l=R[R.length-1];return [l[1],l[2]]}
+function buildField(){const d=fimg.data,p=S.pol,nx=G.nx,ny=G.ny;
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const id=j*nx+i,o=((ny-1-j)*nx+i)*4;let c,a;
+    if(S.layer==="inc")[c,a]=ramp(RAMP_I,incAt(id,p)/VMAX[p]);else[c,a]=ramp(RAMP_R,totAt(id,p)/WHO[p]);
+    d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=a*255}fctx.putImageData(fimg,0,0)}
+function drawRampLegend(){const c=$("#ramp"),x=c.getContext("2d"),g=x.createLinearGradient(0,0,170,0),R=S.layer==="inc"?RAMP_I:RAMP_R,mx=R[R.length-1][0];
+  R.forEach(s=>g.addColorStop(s[0]/mx,`rgba(${s[1].map(Math.round).join(",")},${Math.max(.35,s[2]+.25)})`));x.clearRect(0,0,170,8);x.fillStyle=g;x.fillRect(0,0,170,8);
+  $("#ramp-l").textContent=S.layer==="inc"?`${PNAME[S.pol]} transport:`:`${PNAME[S.pol]} / JSST:`;$("#ramp-r").textContent=S.layer==="inc"?(S.pol==="co"?"0.5 mg/m³+":`${VMAX[S.pol]} µg/m³+`):"8×+"}
+let TF=null;
+function frameTF(){const c0=map.latLngToContainerPoint(toLL(0,0)),cx=map.latLngToContainerPoint(toLL(1000,0)),cy=map.latLngToContainerPoint(toLL(0,1000));
+  TF={ox:c0.x,oy:c0.y,a:(cx.x-c0.x)/1000,b:(cx.y-c0.y)/1000,c:(cy.x-c0.x)/1000,d:(cy.y-c0.y)/1000};TF.ppm=Math.hypot(TF.a,TF.b)}
+const scr=(x,y)=>[TF.ox+x*TF.a+y*TF.c,TF.oy+x*TF.b+y*TF.d];
+const PUFF=[];
+function draw(){if(!TF)return;octx.setTransform(DPR,0,0,DPR,0,0);octx.clearRect(0,0,W,H);if(S.noTiles)drawRoads();
+  // field
+  const [ax,ay]=scr(GX0,GY0+G.ny*G.dx),[bx,by]=scr(GX0+G.nx*G.dx,GY0);octx.imageSmoothingEnabled=true;octx.drawImage(fieldC,ax,ay,bx-ax,by-ay);
+  const ppm=TF.ppm,m=40;
+  // puffs
+  for(const q of PUFF){const [x,y]=scr(q.x,q.y);if(x<-m||y<-m||x>W+m||y>H+m)continue;const r=Math.max(1.5,q.r*ppm),al=q.a*(1-q.age/q.life);
+    octx.fillStyle=`rgba(${q.c[0]},${q.c[1]},${q.c[2]},${al.toFixed(3)})`;octx.beginPath();octx.arc(x,y,r,0,2*PI);octx.fill()}
+  // cars
+  const big=ppm>0.32;
+  for(const a of AG){const [x,y]=scr(a.x,a.y);if(x<-m||y<-m||x>W+m||y>H+m)continue;const T=VT[a.t];
+    if(!big){octx.fillStyle=T.c;octx.fillRect(x-1.3,y-1.3,2.6,2.6);continue}
+    const hx=a.ux*TF.a+a.uy*TF.c,hy=a.ux*TF.b+a.uy*TF.d,ang=Math.atan2(hy,hx),L=Math.max(T.L*ppm,T.L>6?11:6.5),Wd=Math.max(T.W*ppm,T.L>6?4:3.2);
+    octx.save();octx.translate(x,y);octx.rotate(ang);
+    octx.fillStyle="rgba(0,0,0,.45)";octx.fillRect(-L/2+0.8,-Wd/2+0.8,L,Wd);
+    octx.fillStyle=T.c;octx.fillRect(-L/2,-Wd/2,L,Wd);
+    if(L>9){octx.fillStyle="rgba(10,16,20,.55)";octx.fillRect(L*0.08,-Wd/2+Wd*0.18,L*0.22,Wd*0.64);octx.fillStyle="rgba(255,255,255,.18)";octx.fillRect(-L*0.32,-Wd/2+Wd*0.2,L*0.36,Wd*0.6)}
+    if(a.eu===0&&T.smoke&&L>9){octx.fillStyle="rgba(0,0,0,.6)";octx.fillRect(-L/2-1.5,-1,1.5,2)}
+    octx.restore();
+    if(S.sel===a){octx.strokeStyle="#fff";octx.lineWidth=2;octx.beginPath();octx.arc(x,y,Math.max(L,14)*0.8,0,2*PI);octx.stroke()}}
+  // hotspots
+  HOTS.forEach((h,i)=>{const [x,y]=scr(h.x,h.y);if(x<-60||y<-60||x>W+60||y>H+60)return;const pulse=(performance.now()/900+i*0.3)%1;
+    octx.strokeStyle=`rgba(229,72,77,${(1-pulse)*0.9})`;octx.lineWidth=2;octx.beginPath();octx.arc(x,y,10+pulse*26,0,2*PI);octx.stroke();
+    octx.fillStyle="#e5484d";octx.beginPath();octx.arc(x,y,5,0,2*PI);octx.fill();
+    octx.font="600 11px JetBrains Mono, monospace";const t=`#${i+1} ${h.label}`,tw=octx.measureText(t).width+12;octx.fillStyle="rgba(9,14,17,.88)";octx.beginPath();octx.roundRect(x+9,y-22,tw,18,5);octx.fill();
+    octx.fillStyle="#ffb3b5";octx.fillText(t,x+15,y-9)})}
+function stepPuffs(dt){const th=S.dir*PI/180,wx=-Math.sin(th)*MET.u,wy=-Math.cos(th)*MET.u;
+  for(let i=PUFF.length-1;i>=0;i--){const q=PUFF[i];q.age+=dt;if(q.age>=q.life){PUFF[i]=PUFF[PUFF.length-1];PUFF.pop();continue}q.x+=(wx+q.vx)*dt;q.y+=(wy+q.vy)*dt;q.r+=dt*1.6}
+  if(!TF||TF.ppm<0.45)return;const lim=2600;
+  for(const a of AG){if(PUFF.length>lim)break;const T=VT[a.t];if(!T.smoke)continue;const [x,y]=scr(a.x,a.y);if(x<0||y<0||x>W||y>H)continue;
+    const r=a.r?a.r.pm/RREP*1e3:0.1;a.puff+=dt*(0.6+r*9)*(a.eu===0?1.8:1);if(a.puff<1)continue;a.puff=0;
+    const dark=a.eu===0&&(a.t===TI.avtobus||a.t===TI.yuk);PUFF.push({x:a.x-a.ux*T.L*0.6,y:a.y-a.uy*T.L*0.6,vx:-a.ux*0.6+(Math.random()-.5),vy:-a.uy*0.6+(Math.random()-.5),age:0,life:2.2+Math.random()*1.6,r:T.L>6?1.6:0.9,a:dark?0.55:0.3,c:dark?[40,38,36]:T.smoke})}}
+
+/* =============== HOTSPOTS & KPIs =============== */
+let HOTS=[];
+function nearestName(x,y){let best=1e9,nm="";for(const p of PATHS){for(let i=0;i<p.xs.length;i+=2){const d=(p.xs[i]-x)**2+(p.ys[i]-y)**2;if(d<best){best=d;nm=p.name||CLS[p.cls].n}}}return {nm,d:Math.sqrt(best)}}
+function findHot(){const p=S.pol,ids=[];for(let id=0;id<G.n;id++){const v=incAt(id,p);if(v>VMAX[p]*0.25)ids.push([v,id])}ids.sort((a,b)=>b[0]-a[0]);const out=[];
+  for(const [v,id] of ids){const x=GX0+(id%G.nx+.5)*G.dx,y=GY0+(Math.floor(id/G.nx)+.5)*G.dx;if(out.some(o=>Math.hypot(o.x-x,o.y-y)<700))continue;const nn=nearestName(x,y);
+    out.push({x,y,v,tot:totAt(id,p),name:nn.nm||"Nomsiz ko‘cha",label:(nn.nm||"ko‘cha").slice(0,22)});if(out.length>=5)break}HOTS=out;renderHot()}
+function renderHot(){const p=S.pol;$("#hot-h").textContent=`${PNAME[p]} · soat ${pad(S.hour)}:00 · ${CORE.SEASONS[S.season].name}`;
+  $("#hotl").innerHTML=HOTS.length?HOTS.map((h,i)=>{const r=h.tot/WHO[p];return `<li data-i="${i}"><span class="i">#${i+1}</span><span class="n">${h.name}</span><span class="pill" style="background:rgba(229,72,77,.18);color:#ff9b9e">${p==="co"?fmt(h.tot/1000,2)+" mg":fmt(h.tot)+" µg"}/m³ · ${fmt(r,1)}×</span><span class="d">Transport qo‘shgan qism: ${p==="co"?fmt(h.v/1000,2)+" mg/m³":fmt(h.v)+" µg/m³"}. Tavsiya: ${i===0?"aqlli svetofor va yuk mashinalari rejimi":i===1?"yashil himoya polosasi, piyoda hududini ko‘kalamzorlashtirish":"jamoat transporti ustuvorligi, avtobuslarni elektrga o‘tkazish"}.</span></li>`}).join(""):`<li><span></span><span class="d" style="grid-column:2/4">Hozircha xavfli nuqta yo‘q: simulyatsiya to‘planmoqda yoki trafik past.</span></li>`;
+  $$("#hotl li[data-i]").forEach(li=>li.onclick=()=>{const h=HOTS[+li.dataset.i];goTo("sim");setTimeout(()=>map.setView(toLL(h.x,h.y),16),300)})}
+function inView(a){if(!TF)return false;const [x,y]=scr(a.x,a.y);return x>=0&&y>=0&&x<=W&&y<=H}
+function updKPI(){let n=0,sv=0,nox=0,pm=0,co=0,co2=0;const byT=new Float64Array(VT.length),cnt=new Float64Array(VT.length);
+  for(const a of AG){if(!inView(a)||!a.r)continue;n++;sv+=a.v;nox+=a.r.nox;pm+=a.r.pm;co+=a.r.co;co2+=a.r.co2;byT[a.t]+=a.r.nox;cnt[a.t]++}
+  const h=3600;$("#k-cars").innerHTML=`${fmt(n*RREP)} <small>(${fmt(n)} belgi)</small>`;$("#k-v").innerHTML=`${n?fmt(sv/n*3.6):"–"} <small>km/soat</small>`;
+  $("#k-nox").innerHTML=`${fmt(nox*h/1000,1)} <small>kg/soat</small>`;$("#k-pm").innerHTML=`${fmt(pm*h/1000,2)} <small>kg/soat</small>`;$("#k-co").innerHTML=`${fmt(co*h/1000,1)} <small>kg/soat</small>`;$("#k-co2").innerHTML=`${fmt(co2*h/1e6,2)} <small>t/soat</small>`;
+  const dmg=(pm+0.1*nox)*h*DMG,daily=dmg/PROF[S.hour]*PROF.reduce((s,v)=>s+v,0);$("#k-dmg").innerHTML=`$${fmt(dmg)} <small>/soat · kunlik ≈ $${fmt(daily)}</small>`;
+  let mx=0;for(let id=0;id<G.n;id++){const v=totAt(id,S.pol);if(v>mx)mx=v}$("#k-max-l").textContent=`Eng yuqori ${PNAME[S.pol]} (fon + transport)`;
+  $("#k-max").innerHTML=S.pol==="co"?`${fmt(mx/1000,2)} <small>mg/m³ · ${fmt(mx/WHO.co,1)}× JSST</small>`:`${fmt(mx)} <small>µg/m³ · ${fmt(mx/WHO[S.pol],1)}× JSST</small>`;
+  const tn=cnt.reduce((a,b)=>a+b,0)||1,tx=byT.reduce((a,b)=>a+b,0)||1;
+  $("#stack-cnt").innerHTML=VT.map((t,i)=>cnt[i]?`<span style="width:${cnt[i]/tn*100}%;background:${t.c}" title="${t.n}, ${t.f}"></span>`:"").join("");
+  $("#stack-nox").innerHTML=VT.map((t,i)=>byT[i]?`<span style="width:${byT[i]/tx*100}%;background:${t.c}" title="${t.n}, ${t.f}"></span>`:"").join("");
+  const hv=(cnt[TI.avtobus]+cnt[TI.yuk])/tn,hx=(byT[TI.avtobus]+byT[TI.yuk])/tx;$("#stack-note").textContent=`dizel: ${fmt(hv*100)}% mashina → ${fmt(hx*100)}% NOₓ`;
+  if(S.sel)renderCar()}
+
+/* =============== CAR CARD =============== */
+function renderCar(){const a=S.sel,el=$("#car");if(!a){el.hidden=true;return}el.hidden=false;const T=VT[a.t],vk=a.v*3.6,e=perKm(a.t,a.eu,vk),e50=perKm(a.t,a.eu,50),p=PATHS[a.p];
+  const yr=T.km,pmEq=(e50.pm+0.1*e50.nox)*yr,cost=pmEq*DMG*(vk<25?efSpeed(vk)/efSpeed(50)*0.5+0.5:1),co2t=e50.co2*yr/1e6,isEV=a.t===TI.ev||a.t===TI.ebus;
+  const ev=perKm(a.t===TI.avtobus?TI.ebus:TI.ev,1,50),save=pmEq-(ev.pm+0.1*ev.nox)*yr;
+  el.innerHTML=`<div class="ph" style="margin-bottom:8px"><h3>Tanlangan transport</h3><button class="btn" id="car-x" style="padding:4px 8px">✕</button></div>
+  <div class="top"><div class="sw" style="background:${T.c}22;border:1px solid ${T.c}"><svg width="20" height="12" viewBox="0 0 20 12"><rect x="1" y="1" width="18" height="10" rx="2.5" fill="${T.c}"/><rect x="12" y="2.6" width="4" height="6.8" rx="1" fill="#0a1014" opacity=".6"/></svg></div>
+  <div><h4>${T.n}</h4><div class="sub">${T.f} · ${isEV?"chiqindisiz dvigatel":EURO[a.eu].n} · ${a.yr}-yil</div></div></div>
+  <div class="sub" style="margin-top:8px">${p.name||CLS[p.cls].n} · <b class="num" style="color:var(--fg)">${fmt(vk)} km/soat</b>${vk<20?' · <span style="color:var(--usg)">tirbandlikda</span>':""}</div>
+  <table><tr><th>Modda</th><th>hozir, g/km</th><th>50 km/soatda</th></tr>
+  <tr><td>NOₓ</td><td>${fmt(e.nox,2)}</td><td>${fmt(e50.nox,2)}</td></tr><tr><td>PM2.5</td><td>${fmt(e.pm,3)}</td><td>${fmt(e50.pm,3)}</td></tr>
+  <tr><td>CO</td><td>${fmt(e.co,2)}</td><td>${fmt(e50.co,2)}</td></tr><tr><td>CO₂</td><td>${fmt(e.co2)}</td><td>${fmt(e50.co2)}</td></tr></table>
+  <div class="verdict">${isEV?`Mo‘ridan chiqindi yo‘q. Faqat shina va tormoz changi qoladi: yiliga ~${fmt(pmEq/1000,2)} kg PM.`:
+  `Yiliga ~${fmt(yr)} km: <b class="num">${fmt(co2t,1)} t CO₂</b>, sog‘liqqa zarar <b class="num" style="color:var(--bad)">≈ $${fmt(cost)}</b>. Tirbandlikda chiqindi ×${fmt(efSpeed(vk)/efSpeed(50),1)}. Elektr ${a.t===TI.avtobus?"avtobus":"avtomobil"}ga almashtirilsa, zararning ${fmt(save/pmEq*100)}% i yo‘qoladi.`}</div>
+  <div class="row" style="margin-top:8px"><button class="btn${S.follow?" pri":""}" id="car-f" style="flex:1">${S.follow?"Kuzatilmoqda":"Kamerani ergashtirish"}</button></div>`;
+  $("#car-x").onclick=()=>{S.sel=null;S.follow=false;renderCar()};$("#car-f").onclick=()=>{S.follow=!S.follow;renderCar()}}
+
+/* =============== LOOP =============== */
+let last=performance.now(),kT=0,hT=0,fT=0;
+function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(PATHS.length&&map){const vis=CUR==="sim";if(vis)frameTF();const vdt=dt*S.speed;stepAgents(vdt);depositSources();pdeStep(Math.min(40,6*S.speed));if(vis)stepPuffs(vdt);
+    fT+=dt;if(fT>0.12){fT=0;buildField()}kT+=dt;if(kT>0.4){kT=0;updKPI()}hT+=dt;if(hT>1.2){hT=0;findHot()}
+    if(vis&&S.follow&&S.sel){map.setView(toLL(S.sel.x,S.sel.y),map.getZoom(),{animate:false});frameTF()}
+    if(vis)draw()}
+  requestAnimationFrame(loop)}
+
+/* =============== UI =============== */
+function seg(id,cb){const el=$(id);el.querySelectorAll("button").forEach(b=>b.onclick=()=>{el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));cb(b.dataset.v)})}
+const dirName=d=>["Sh","Sh-ShSh","ShSh","Shq-ShSh","Shq","Shq-JSh","JShq","J-JShq","J","J-JG‘","JG‘","G‘-JG‘","G‘","G‘-ShG‘","ShG‘","Sh-ShG‘"][Math.round(d/22.5)%16];
+function syncLabels(){$("#hour-v").textContent=`${pad(S.hour)}:00`;$("#clock").textContent=`${pad(S.hour)}:00 · ${MET.stab}-sinf · H ${fmt(MET.mix)} m`;$("#wdir-v").textContent=`${S.dir}° (${dirName(S.dir)})`;$("#wspd-v").textContent=`${fmt(S.u,1)} m/s`;$("#spd-v").textContent=`×${S.speed}`}
+function initUI(){
+  seg("#season",v=>{S.season=v;S.u=CORE.SEASONS[v].u+0.4;$("#wspd").value=S.u;updMet();syncLabels()});
+  seg("#pol",v=>{S.pol=v;drawRampLegend();buildField();findHot()});
+  seg("#layer",v=>{S.layer=v;drawRampLegend();buildField()});
+  $("#hour").oninput=e=>{S.hour=+e.target.value;updMet();syncLabels()};
+  $("#wdir").oninput=e=>{S.dir=+e.target.value;updMet();syncLabels()};
+  $("#wspd").oninput=e=>{S.u=+e.target.value;updMet();syncLabels()};
+  $("#spd").oninput=e=>{S.speed=+e.target.value;syncLabels()};
+  let pt=null;$("#play").onclick=()=>{if(pt){clearInterval(pt);pt=null;$("#play").textContent="▶";return}$("#play").textContent="❚❚";pt=setInterval(()=>{S.hour=(S.hour+1)%24;$("#hour").value=S.hour;updMet();syncLabels()},5000)};
+  $$("#scn .chip").forEach(c=>c.onclick=()=>{const k=c.dataset.k;S.scn[k]=!S.scn[k];c.setAttribute("aria-pressed",S.scn[k]);if(k==="ebus"||k==="lez")AG.forEach(applyScn)});
+  $("#reset").onclick=()=>{Object.keys(S.scn).forEach(k=>S.scn[k]=false);$$("#scn .chip").forEach(c=>c.setAttribute("aria-pressed","false"));AG.forEach(applyScn)};
+  $("#fuel-lg").innerHTML=VT.filter(t=>t.id!=="ebus").map(t=>`<span><i style="background:${t.c}"></i>${t.id==="damas"?"Damas/Labo":t.id==="avtobus"?"Avtobus (dizel)":t.id==="yuk"?"Yuk (dizel)":t.f}</span>`).join("");
+  $("#liveWx").onclick=liveWeather;
+  $("#bm").onclick=()=>{if(S.base==="sat"){map.removeLayer(satL);map.removeLayer(lblL);darkL.addTo(map);S.base="dark";$("#bm").textContent="Xarita: oddiy"}else{map.removeLayer(darkL);satL.addTo(map);lblL.addTo(map);S.base="sat";$("#bm").textContent="Xarita: sunʼiy yo‘ldosh"}};
+  drawRampLegend()}
+async function liveWeather(){const st=$("#wx-st");st.textContent="yuklanmoqda…";
+  try{const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude=41.31&longitude=69.28&current=temperature_2m,wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=Asia%2FTashkent");const j=await r.json();const c=j.current;
+    S.u=clamp(+c.wind_speed_10m.toFixed(1),0.5,8);S.dir=Math.round(c.wind_direction_10m/5)*5%360;S.hour=+c.time.slice(11,13);const mo=+c.time.slice(5,7);S.season=mo<=2||mo===12?"qish":mo>=6&&mo<=8?"yoz":"kuz";
+    $("#wspd").value=S.u;$("#wdir").value=S.dir;$("#hour").value=S.hour;$$("#season button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===S.season));updMet();syncLabels();
+    st.textContent=`Toshkent hozir: ${fmt(c.temperature_2m,1)}°C, ${fmt(S.u,1)} m/s`}catch(e){st.textContent="internet yo‘q: qo‘lda sozlang"}}
+
+function initMap(){if(typeof L==="undefined"){$("#net-st").textContent="Xarita kutubxonasi yuklanmadi: internetni tekshiring.";return false}
+  map=L.map("map",{zoomControl:true,zoomAnimation:false,keyboard:false,minZoom:12,maxZoom:19,worldCopyJump:false}).setView([41.3111,69.2797],16);
+  satL=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,maxNativeZoom:18,attribution:"Tasvir © Esri, Maxar, Earthstar Geographics"}).addTo(map);
+  lblL=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,maxNativeZoom:18,opacity:.85}).addTo(map);
+  darkL=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,subdomains:"abc",attribution:"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"});
+  let te=0;satL.on("tileload",()=>TL.n++);darkL.on("tileload",()=>TL.n++);satL.on("tileerror",()=>{te++;if(te>=8&&TL.n===0&&S.base==="sat"){map.removeLayer(satL);map.removeLayer(lblL);darkL.addTo(map);S.base="dark";$("#bm").textContent="Xarita: oddiy"}});
+  map.zoomControl.setPosition("bottomright");
+  ov=$("#ov");octx=ov.getContext("2d");map.getContainer().appendChild(ov);
+  const rs=()=>{const r=map.getContainer().getBoundingClientRect();W=r.width;H=r.height;DPR=Math.min(2,window.devicePixelRatio||1);ov.width=Math.round(W*DPR);ov.height=Math.round(H*DPR);ov.style.width=W+"px";ov.style.height=H+"px"};
+  new ResizeObserver(()=>{rs();map.invalidateSize()}).observe(map.getContainer());rs();
+  map.on("click",e=>{if(!TF)return;const cp=e.containerPoint;let best=16,ba=null;for(const a of AG){const [x,y]=scr(a.x,a.y),d=Math.hypot(x-cp.x,y-cp.y);if(d<best){best=d;ba=a}}
+    if(ba){S.sel=ba;S.follow=false;renderCar();return}
+    const [x,y]=toM(e.latlng.lat,e.latlng.lng),id=cellOf(x,y);if(id<0)return;const no2=totAt(id,"no2"),pm=totAt(id,"pm"),co=totAt(id,"co"),nn=nearestName(x,y);
+    L.popup().setLatLng(e.latlng).setContent(`<div class="pop"><div style="font-weight:600;margin-bottom:4px">${nn.nm||"Nomsiz hudud"} <span style="color:#8fa0a8;font-weight:400">· ${fmt(nn.d)} m</span></div>NO₂: <b>${fmt(no2)}</b> µg/m³ (${fmt(no2/25,1)}× JSST)<br>PM2.5: <b>${fmt(pm,1)}</b> µg/m³ · AQI <b>${CORE.aqiPM(pm)}</b><br>CO: <b>${fmt(co/1000,2)}</b> mg/m³<br><span style="color:#8fa0a8">Transport hissasi: NO₂ ${fmt(incAt(id,"no2")/no2*100)}%, PM ${fmt(incAt(id,"pm")/pm*100)}%</span></div>`).openOn(map)});
+  return true}
+
+
+/* =================== TOZAYO'L: DECK + SLIDES =================== */
+const TL={n:0};let CUR="cover",simShown=false;
+function drawRoads(){octx.fillStyle="#e4ebe8";octx.fillRect(0,0,W,H);octx.lineCap="round";octx.lineJoin="round";
+  for(const pass of [0,1]){for(const p of PATHS){if(!p.two&&pass===0&&false)continue;const w=(CLS[p.cls]||CLS.tertiary).w;octx.beginPath();for(let i=0;i<p.xs.length;i++){const [x,y]=scr(p.xs[i],p.ys[i]);i?octx.lineTo(x,y):octx.moveTo(x,y)}
+    octx.strokeStyle=pass?"#ffffff":"#c9d5d0";octx.lineWidth=Math.max(1.5,(w*2.2+(pass?0:2))*Math.sqrt(TF.ppm*2));octx.stroke()}}}
+
+/* ---------- embedded snapshot (Copernicus CAMS via Open-Meteo, Toshkent, 21 Aug – 20 Oct 2026) ---------- */
+const SNAP={range:["2026-08-21","2026-10-20"],
+ pm:{mean:16.4,wd:[22.7,22.2,21.3,20.1,18.9,18.3,17.8,19.5,21,16.8,12,10.5,9.7,9.2,8.7,8.3,8.1,9.1,13.1,18.6,21.1,22.1,23,23.5],we:[22.3,21.5,20.5,19.5,18.5,17.9,17.9,19.7,20.9,17,13.9,12.2,11,10.3,9.7,9.3,9,9.6,12.9,17.3,19.3,20,20.3,20.4],blh:[25.7,18.7,11.9,9],wind:[22.5,19.3,15.4,12.6],
+  daily:[11.3,10.1,9.5,8.8,7.9,12,12.8,12.6,9.2,13.9,12.3,6.8,8.2,7.3,9.5,18.5,17.1,17.6,17.9,19.4,17.2,14.7,13.3,12.2,13.4,14.7,10.9,11.6,11.3,14.1,10.9,11.4,14.3,15.3,14.6,16.9,9.5,12.4,16.5,14.3,20.9,23.1,26,15.6,12.8,6.9,12.8,21.7,26,25.9,33.4,20.6,21.2,28.7,23.9,25.1,25.7,29.3,30.7,32.1,27.1]},
+ no2:{mean:14.9,wd:[25,24.2,23.3,22.9,22.5,22.4,21,18.9,16.3,12.8,8.8,5.6,3.9,3.1,2.8,2.5,2.8,4.7,10,17.5,23.2,25.9,26.8,26.6],we:[23.2,22,21,20.8,20.7,19.7,18.7,17.2,15,11.7,7.6,4.5,3,2.4,2.2,2.2,2.6,4.2,8.5,14.4,18.9,20.6,20.9,20.9],blh:[25.4,15.7,7.9,3.3],wind:[20.1,16.8,12.9,8.7],
+  daily:[14.2,12.5,9.4,9.7,10.4,16.6,16.1,11.1,8.6,13.2,11.5,10.7,13.7,11.4,10.6,15,15.7,16,15,16.8,16.1,13.4,8.6,8.3,12.7,13.1,11.1,12.1,15.3,16.6,10.1,13.4,16.8,16,14.7,11.5,9.1,13.1,16.7,14.6,17.2,10,17.1,15.3,7.6,9,13.4,19.1,23.1,20.8,21.4,16.6,18.3,21.5,21.4,24.4,23.5,21.1,19.8,23.3,25.7]},
+ co:{mean:213.5,wd:[251.7,231.1,212,191.6,172.8,173,214,273.9,304.5,275.7,217.6,171.5,152.9,146.4,146.2,150.1,160.3,177.6,207.4,244.3,272.5,286.9,292.5,287.3],we:[262.2,233.4,209.7,192.5,180.4,181.3,208.6,248.8,268.4,247,205.2,170.8,153.8,144.1,141.4,146.4,158.3,174.2,197.3,224.5,243,247.5,243.4,235.2],blh:[290.5,228.6,189,152.7],wind:[300.1,236.7,190.4,157.3],
+  daily:[223.1,175.7,152.3,146.1,164.7,191.9,185.2,168.4,157.4,159.6,153.2,158.3,167.1,185.2,163.1,194.6,179.5,191.8,203.3,210.3,200.5,212.3,157.4,157.9,176.8,184.3,190.1,203.9,222.3,220.2,155.9,191.8,198.3,200.6,171.3,244.5,175.3,181.4,200.7,192.3,238.7,176,293.7,296.1,160.6,162.6,220.7,386.5,345.1,241.5,346.7,205.2,232.8,285.5,285.8,336.9,283.5,306.1,306.3,274.2,276.5]},
+ now:{time:"2026-10-20T22:00",pm2_5:38.2,nitrogen_dioxide:50.6,carbon_monoxide:344,us_aqi:86}};
+let AN=SNAP,REAL=null;const PN={no2:"NO₂",pm:"PM2.5",co:"CO"},WHO24={no2:25,pm:15,co:4000};
+
+/* ---------- deck ---------- */
+const SL=[...document.querySelectorAll(".slide")],KEYS=SL.map(s=>s.dataset.k);
+const ON_SHOW={};
+function buildTabs(){$("#tabs").innerHTML=SL.map((s,i)=>`<button data-k="${s.dataset.k}"><i>${i+1}</i><span>${s.dataset.t}</span></button>`).join("");
+  $$("#tabs button").forEach(b=>b.onclick=()=>goTo(b.dataset.k))}
+function fitAll(){const d=$("#deck").getBoundingClientRect();const narrow=window.innerWidth<=820;
+  $$(".fit").forEach(f=>{if(narrow){f.style.transform="none";return}const s=Math.min((d.width-28)/1600,(d.height-24)/900);f.style.transform=`translate(-50%,-50%) scale(${s})`})}
+function goTo(k){if(!KEYS.includes(k))k="cover";CUR=k;SL.forEach(s=>s.classList.toggle("on",s.dataset.k===k));const i=KEYS.indexOf(k);
+  $$("#tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.k===k?"true":"false"));$("#pg").textContent=`${i+1} / ${KEYS.length}`;
+  try{history.replaceState(null,"","#"+k)}catch(e){}
+  if(ON_SHOW[k])requestAnimationFrame(()=>ON_SHOW[k]())}
+function step(d){goTo(KEYS[clamp(KEYS.indexOf(CUR)+d,0,KEYS.length-1)])}
+document.addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||tg==="TEXTAREA")return;
+  if(e.key==="ArrowRight"||e.key==="PageDown"){step(1);e.preventDefault()}else if(e.key==="ArrowLeft"||e.key==="PageUp"){step(-1);e.preventDefault()}
+  else if(e.key==="Escape"&&S.sel){S.sel=null;S.follow=false;renderCar()}});
+$("#prev").onclick=()=>step(-1);$("#next").onclick=()=>step(1);
+window.addEventListener("resize",fitAll);
+
+/* ---------- small SVG chart ---------- */
+function svgChart(el,o){const r=el.getBoundingClientRect(),sc=el.closest(".fit")&&window.innerWidth>820?(r.width/el.offsetWidth||1):1;
+  const Wc=Math.max(320,el.offsetWidth||600),Hc=Math.max(150,o.h||el.offsetHeight||220),L=46,R=24,T=12,B=o.xlab?28:16,n=o.n;
+  const all=o.series.flatMap(s=>s.v.filter(v=>v!=null));if(o.ref)all.push(o.ref.v);let ymax=Math.max(...all)*1.1,ymin=0;
+  const nice=x=>{const e=10**Math.floor(Math.log10(x)),f=x/e;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e};const stp=nice(ymax/4);ymax=Math.ceil(ymax/stp)*stp;
+  const X=i=>L+(Wc-L-R)*i/Math.max(1,n-1),Y=v=>T+(Hc-T-B)*(1-(v-ymin)/(ymax-ymin));let s=`<svg class="chart" viewBox="0 0 ${Wc} ${Hc}" width="100%" height="${Hc}" style="height:${Hc}px" role="img" aria-label="${o.label||"grafik"}">`;
+  (o.bands||[]).forEach(([a,b,c])=>s+=`<rect x="${X(a)}" y="${T}" width="${X(b)-X(a)}" height="${Hc-T-B}" fill="${c||"#fbe3e3"}"/>`);
+  s+=`<g class="gl">`;for(let v=0;v<=ymax+1e-9;v+=stp)s+=`<line x1="${L}" x2="${Wc-R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-7}" y="${Y(v)+4}" text-anchor="end">${v>=1000?(v/1000)+"k":Math.round(v*10)/10}</text>`;s+="</g>";
+  if(o.ref)s+=`<line x1="${L}" x2="${Wc-R}" y1="${Y(o.ref.v)}" y2="${Y(o.ref.v)}" stroke="#d99a00" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${Wc-R}" y="${Y(o.ref.v)-6}" text-anchor="end" style="fill:#b07d00">${o.ref.t}</text>`;
+  if(o.mark!=null)s+=`<line x1="${X(o.mark)}" x2="${X(o.mark)}" y1="${T}" y2="${Hc-B}" stroke="#869590" stroke-dasharray="3 3"/>`;
+  (o.xt||[]).forEach(([i,t])=>s+=`<text x="${X(i)}" y="${Hc-8}" text-anchor="middle">${t}</text>`);
+  o.series.forEach(se=>{let d="",op=false,f=-1,l=-1;se.v.forEach((v,i)=>{if(v==null){op=false;return}if(f<0)f=i;l=i;d+=(op?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1);op=true});
+    if(se.area&&f>=0)s+=`<path d="${d}L${X(l)} ${Hc-B}L${X(f)} ${Hc-B}Z" fill="${se.c}" opacity=".12"/>`;
+    s+=`<path d="${d}" fill="none" stroke="${se.c}" stroke-width="${se.w||2.5}" ${se.dash?`stroke-dasharray="${se.dash}"`:""} stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(se.dot!=null&&se.v[se.dot]!=null)s+=`<circle cx="${X(se.dot)}" cy="${Y(se.v[se.dot])}" r="5" fill="${se.c}" stroke="#fff" stroke-width="2"/>`});
+  el.innerHTML=s+"</svg>"}
+function svgBars(el,o){const Wc=Math.max(300,el.offsetWidth||400),Hc=o.h||178,L=10,B=26,T=22,n=o.v.length,bw=(Wc-L*2)/n,mx=Math.max(...o.v)*1.15;
+  let s=`<svg class="chart" viewBox="0 0 ${Wc} ${Hc}" width="100%" height="${Hc}" style="height:${Hc}px" role="img" aria-label="${o.label}">`;
+  o.v.forEach((v,i)=>{const h=(Hc-B-T)*v/mx,x=L+i*bw+bw*0.18,w=bw*0.64;s+=`<rect x="${x}" y="${Hc-B-h}" width="${w}" height="${h}" rx="5" fill="${o.c[i]}"/><text x="${x+w/2}" y="${Hc-B-h-6}" text-anchor="middle" style="fill:#0d1f1b;font-weight:600">${o.fmt(v)}</text><text x="${x+w/2}" y="${Hc-8}" text-anchor="middle">${o.l[i]}</text>`});
+  el.innerHTML=s+"</svg>"}
+
+/* ---------- real data fetch ---------- */
+async function fetchReal(){const q="latitude=41.31&longitude=69.28&timezone=Asia%2FTashkent&past_days=60&forecast_days=2";
+  const [aq,wx]=await Promise.all([fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${q}&hourly=pm2_5,nitrogen_dioxide,carbon_monoxide&current=pm2_5,nitrogen_dioxide,carbon_monoxide,us_aqi`).then(r=>{if(!r.ok)throw 0;return r.json()}),
+    fetch(`https://api.open-meteo.com/v1/forecast?${q}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,boundary_layer_height&current=temperature_2m,wind_speed_10m,wind_direction_10m&wind_speed_unit=ms`).then(r=>{if(!r.ok)throw 0;return r.json()})]);
+  const t=aq.hourly.time,wi=new Map(wx.hourly.time.map((x,i)=>[x,i]));const g=(a,i)=>i==null?null:a[i];
+  const R={t,pm:aq.hourly.pm2_5,no2:aq.hourly.nitrogen_dioxide,co:aq.hourly.carbon_monoxide,cur:aq.current,curw:wx.current,
+    T:t.map(x=>g(wx.hourly.temperature_2m,wi.get(x))),u:t.map(x=>g(wx.hourly.wind_speed_10m,wi.get(x))),dir:t.map(x=>g(wx.hourly.wind_direction_10m,wi.get(x))),blh:t.map(x=>g(wx.hourly.boundary_layer_height,wi.get(x)))};
+  R.iNow=t.findIndex(x=>x.slice(0,13)===aq.current.time.slice(0,13));if(R.iNow<0)R.iNow=t.length-49;return R}
+function summarize(R){const out={range:[R.t[0].slice(0,10),R.t[R.iNow].slice(0,10)],now:R.cur};
+  for(const k of ["pm","no2","co"]){const v=R[k],wd=Array(24).fill(0),wn=Array(24).fill(0),ed=Array(24).fill(0),en=Array(24).fill(0),bl=[[0,0],[0,0],[0,0],[0,0]],wb=[[0,0],[0,0],[0,0],[0,0]],daily={};let s=0,c=0;
+    for(let i=0;i<=R.iNow;i++){if(v[i]==null)continue;const d=new Date(R.t[i]+":00"),h=d.getHours(),we=d.getDay()===0||d.getDay()===6;(we?ed:wd)[h]+=v[i];(we?en:wn)[h]++;s+=v[i];c++;
+      const day=R.t[i].slice(0,10);(daily[day]=daily[day]||[0,0]);daily[day][0]+=v[i];daily[day][1]++;
+      if(R.blh[i]!=null){const L=R.blh[i]<100?0:R.blh[i]<300?1:R.blh[i]<800?2:3;bl[L][0]+=v[i];bl[L][1]++}
+      if(R.u[i]!=null){const b=R.u[i]<1?0:R.u[i]<2?1:R.u[i]<3?2:3;wb[b][0]+=v[i];wb[b][1]++}}
+    const av=(a,n)=>a.map((x,i)=>n[i]?x/n[i]:null);
+    out[k]={mean:s/c,wd:av(wd,wn),we:av(ed,en),blh:bl.map(b=>b[1]?b[0]/b[1]:0),wind:wb.map(b=>b[1]?b[0]/b[1]:0),daily:Object.values(daily).map(a=>a[0]/a[1])}}
+  return out}
+
+/* ---------- slide 1: cover ---------- */
+function aqiCat(a){return a<=50?["Yaxshi","#1f9d55","#fff"]:a<=100?["O‘rtacha","#e8a500","#1b1400"]:a<=150?["Sezgir guruhlar uchun zararli","#e06a12","#fff"]:a<=200?["Zararli","#cf2e2e","#fff"]:["Juda zararli","#8a3fc4","#fff"]}
+function renderNow(n,live){$("#now-aqi").textContent=Math.round(n.us_aqi);const c=aqiCat(n.us_aqi);const el=$("#now-cat");el.textContent=c[0];el.style.background=c[1];el.style.color=c[2];
+  $("#now-pm").textContent=fmt(n.pm2_5,1);$("#now-no2").textContent=fmt(n.nitrogen_dioxide,1);$("#now-co").textContent=fmt(n.carbon_monoxide);
+  const tt=n.time.replace("T"," ");$("#now-src").textContent=`Copernicus CAMS, Open-Meteo orqali · µg/m³ · ${tt} holati${live?"":" (saqlangan)"}`;
+  const l=$("#now-live");l.textContent=live?"jonli":"saqlangan";l.classList.toggle("off",!live)}
+
+/* ---------- slide 3: analysis ---------- */
+let anPol="no2";
+function avg(a,i0,i1){let s=0,n=0;for(let i=i0;i<=i1;i++)if(a[i]!=null){s+=a[i];n++}return n?s/n:0}
+function renderFinds(){const N=AN.no2,C=AN.co,P=AN.pm;
+  const eve=(avg(N.wd,19,23)/avg(N.we,19,23)-1)*100,mor=Math.max(...C.wd.slice(7,10))/Math.min(...C.wd.slice(2,6)),inv=N.blh[0]/Math.max(0.1,N.blh[3]),d=P.daily,tr=avg(d,d.length-7,d.length-1)/avg(d,0,6);
+  $("#finds").innerHTML=`<div><b>+${fmt(eve)}%</b><span>NO₂ ish kunlari kechqurun (19–23) dam olish kunlariga nisbatan yuqori: mashinalar soni farqi</span></div>
+  <div><b>×${fmt(mor,1)}</b><span>CO ertalabki tirbandlikda (07–09) tungi minimumdan yuqori: avtomobil izi</span></div>
+  <div><b>×${fmt(inv,1)}</b><span>Havo qatlami 100 m dan past bo‘lganda NO₂, 800 m dan baland bo‘lgandagiga nisbatan</span></div>
+  <div><b>×${fmt(tr,1)}</b><span>PM2.5: oxirgi hafta avgust oxiriga nisbatan. Kuz va inversiyalar boshlandi</span></div>`}
+function renderAnalysis(){if(CUR!=="tahlil")return;renderFinds();const D=AN[anPol],u=anPol==="co"?"µg/m³":"µg/m³";
+  svgChart($("#an-diurnal"),{n:24,series:[{v:D.wd,c:"#cf2e2e",w:3},{v:D.we,c:"#1d65c9",w:3}],bands:[[7,10,"#fbe3e3"],[17,20,"#fbe3e3"]],xt:[[0,"00"],[3,"03"],[6,"06"],[9,"09"],[12,"12"],[15,"15"],[18,"18"],[21,"21"],[23,"23"]],xlab:true,h:350,label:"Sutkalik profil"});
+  const dl=D.daily,xt=[];const days=dl.length;for(let i=0;i<days;i+=10){const dt=new Date(new Date(AN.range[0]).getTime()+i*864e5);xt.push([i,`${pad(dt.getDate())}.${pad(dt.getMonth()+1)}`])}
+  svgChart($("#an-trend"),{n:days,series:[{v:dl,c:"#0b7a57",w:2.5,area:true}],xt,xlab:true,ref:anPol!=="co"?{v:WHO24[anPol],t:"JSST 24 soat"}:null,h:178,label:"Kunlik trend"});
+  svgBars($("#an-blh"),{v:D.blh,l:["<100 m","100–300","300–800",">800 m"],c:["#7a1f1f","#cf2e2e","#e88a3c","#f3c08a"],fmt:v=>fmt(v,anPol==="co"?0:1),label:"Havo qatlami bo‘yicha"})}
+
+/* ---------- slide 4: model ---------- */
+const MD=[
+ {k:"01 · Trafik oqimi modeli (LWR, Greenshields)",tex:"\\frac{\\partial \\rho}{\\partial t}+\\frac{\\partial (\\rho v)}{\\partial x}=0,\\qquad v(\\rho)=v_f\\Big(1-\\frac{\\rho}{\\rho_{\\max}}\\Big)",
+  v:[["ρ","zichlik: ko‘chaning har km/qatoridagi avtomobillar"],["v","oqim tezligi"],["v_f","erkin tezlik: magistralda 60–70, ko‘chada 40–50 km/soat"],["ρ_max","≈ 140 avto/km/qator: to‘liq tiqilish"]],
+  p:"Ko‘chada mashina qancha ko‘p bo‘lsa, ular shuncha sekin yuradi. Birinchi tenglama mashinalar yo‘qolmasligini aytadi (saqlanish qonuni), ikkinchisi tezlikni zichlikka bog‘laydi. Simulyatsiyada har bir ko‘cha bo‘lagi uchun alohida hisoblanadi.",h:"Sinab ko‘rish: 4-slayd, A tajriba"},
+ {k:"02 · Emissiya modeli (COPERT tipidagi)",tex:"E_c(t)=R\\sum_{i\\in c} EF_{k_i}(v_i)\\,\\mu_{e_i}\\,v_i,\\qquad EF(v)=EF_{50}\\Big(\\frac{25}{v}+0.4+\\frac{v}{500}\\Big)",
+  v:[["EF₅₀","50 km/soatdagi chiqindi, g/km (benzin NOₓ 0.35, dizel avtobus 7.5)"],["k","yoqilg‘i: benzin, metan, propan, dizel, elektr"],["μ_e","Evro sinfi koeffitsienti: 0.45 (Evro-6) … 1.8 (Evro-0)"],["R","bitta modeldagi belgi nechta real avtomobilni ifodalaydi"]],
+  p:"Har bir mashina har soniyada qancha NOₓ, PM2.5, CO va CO₂ chiqarishini hisoblaymiz. Tezlik pasayganda EF(v) keskin oshadi: 12 km/soatda 1 km uchun 50 km/soatdagidan 2–3 barobar ko‘p. Eski dizel avtobus bitta o‘zi o‘nlab yengil mashinaga teng.",h:"Sinab ko‘rish: 4-slayd, B tajriba"},
+ {k:"03 · Tarqalish: adveksiya–diffuziya tenglamasi",tex:"\\frac{\\partial C}{\\partial t}+\\mathbf{u}\\cdot\\nabla C=K\\nabla^2 C+\\frac{E}{\\Delta x^2 H}-\\frac{C}{\\tau}-\\kappa_g C",
+  v:[["C(x,y,t)","konsentratsiya, µg/m³"],["u","shamol vektori: ifloslanishni olib ketadi"],["K","turbulent diffuziya: 5 + 4|u| m²/s"],["H, τ","havo qatlami balandligi va vertikal almashinuv vaqti (inversiyada kichik H)"],["κ_g","yashil polosalarda zarrachalarning cho‘kishi"]],
+  p:"Chiqindi shamol bilan oqadi, atrofga yoyiladi, havo qatlami past bo‘lsa yuqoriga keta olmaydi. Tenglamani 50 m to‘rda (189 × 173 = 32 700 katak) chekli hajmlar usuli bilan har kadrda yechamiz. Real tahlil buni tasdiqlaydi: havo qatlami past bo‘lganda NO₂ bir necha barobar yuqori.",h:"Sinab ko‘rish: 4-slayd, C tajriba va 6-slayd"},
+ {k:"04 · Sog‘liq va iqtisodiy zarar",tex:"\\Delta M=M_0\\,P\\,\\big(1-e^{-\\beta\\Delta C}\\big),\\ \\ \\beta=\\frac{\\ln 1.08}{10};\\qquad D=\\sum_i\\big(m_{PM,i}+0.1\\,m_{NO_x,i}\\big)\\,c_d",
+  v:[["β","JSST 2021: PM2.5 har +10 µg/m³ ga o‘lim xavfi +8%"],["P, M₀","aholi soni va bazaviy o‘lim darajasi"],["c_d","≈ $0.17/g: Jahon banki zararining transport qismi yillik chiqindiga bo‘lingan"],["0.1","NOₓ dan ikkilamchi zarracha hosil bo‘lish ulushi"]],
+  p:"Konsentratsiyani odamlarga taʼsirga aylantiramiz: qancha qo‘shimcha o‘lim va qancha pul zarari. Shu tufayli har bir mashina va har bir chora uchun dollar va hayotlarda natija ko‘rsatamiz.",h:"Natija: 6-slayddagi mashina kartasi va 8-slayd"},
+ {k:"05 · Sunʼiy intellekt: gradient boosting",tex:"\\hat y_{t+h}=\\bar y+\\sum_{m=1}^{140}\\eta\\,f_m(\\mathbf{x}),\\qquad \\mathbf{x}=(\\text{soat},\\,u,\\,T,\\,H_{mix},\\,y_{t-24},\\,\\bar y_{24},\\dots)",
+  v:[["f_m","qaror daraxti (chuqurlik 4), har biri oldingilar xatosini tuzatadi"],["η","o‘rganish qadami 0.08"],["x","kirish: vaqt, ob-havo, havo qatlami, o‘tgan kun qiymatlari, fizik model bahosi"]],
+  p:"Matematik modelning parametrlari (K, H, avtopark tarkibi) aniq maʼlum emas. Isitish va chang kabi manbalarni u ko‘rmaydi, CFD (COMSOL) esa butun shahar uchun juda sekin. AI tarixiy maʼlumotdan bu xatolarni o‘rganadi va millisekundda 24 soatlik prognoz beradi.",h:"Ko‘rish: 7-slayd, real maʼlumotda o‘qitilgan model"}];
+function showModel(i){$$("#flow .blk,.aiband").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.m===i?"true":"false"));const m=MD[i];$("#md-k").textContent=m.k;
+  const el=$("#md-tex");if(window.katex){try{katex.render(m.tex,el,{displayMode:true,throwOnError:false})}catch(e){el.textContent=m.tex}}else el.textContent=m.tex;
+  $("#md-vars").innerHTML=m.v.map(([a,b])=>`<li><code>${a}</code><span>${b}</span></li>`).join("");$("#md-plain").textContent=m.p;$("#md-how").textContent=m.h}
+$$("#flow .blk,.aiband").forEach(b=>b.onclick=()=>showModel(+b.dataset.m));
+
+/* ---------- slide 5: labs ---------- */
+function labA(){const rk=+$("#lab-rho").value,rho=rk/1000,vf=60,v=Math.max(5,vf*(1-rho/0.14)),f=efSpeed(v)/efSpeed(50),q=rk*v,nox=q*0.9*f;
+  $("#lab-rho-v").textContent=`${rk} avto/km/qator`;$("#la-v").textContent=`${fmt(v)} km/soat`;$("#la-f").textContent=`×${fmt(f,2)}`;$("#la-e").textContent=fmt(nox);
+  const xs=[],sp=[],em=[];for(let r=5;r<=135;r+=5){const vv=Math.max(5,vf*(1-r/140));xs.push(r);sp.push(vv);em.push(efSpeed(vv)/efSpeed(50)*20)}const idx=Math.round((rk-5)/5);
+  svgChart($("#lab-a-chart"),{n:xs.length,series:[{v:sp,c:"#1d65c9",w:3,dot:idx},{v:em,c:"#cf2e2e",w:3,dot:idx}],xt:[[0,"5"],[9,"50"],[19,"100"],[26,"135"]],xlab:true,h:250,label:"Tezlik va chiqindi"});
+  const lg=$("#lab-a-chart").querySelector("svg");lg.insertAdjacentHTML("beforeend",`<text x="56" y="26" style="fill:#1d65c9;font-weight:600">tezlik, km/soat</text><text x="56" y="44" style="fill:#cf2e2e;font-weight:600">chiqindi ×20 (g/km nisbati)</text>`)}
+function labB(){const t=+$("#lab-t").value,eu=+$("#lab-e").value,v=+$("#lab-v").value,e=perKm(t,eu,v),T=VT[t],km=T.km,isEV=t===TI.ev||t===TI.ebus,ref=perKm(T.L>6?TI.ebus:TI.ev,1,v);
+  $("#lab-v-v").textContent=`${v} km/soat`;const row=(n,a,b,u,d)=>`<tr><td>${n}</td><td>${fmt(a,d)}</td><td>${u}</td><td>${isEV?"—":b>0?"×"+fmt(a/Math.max(b,1e-6),0):"∞"}</td></tr>`;
+  $("#lab-b-tb").innerHTML=row("NOₓ",e.nox,ref.nox,`${fmt(e.nox*km/1000,1)} kg`,2)+row("PM2.5",e.pm,ref.pm,`${fmt(e.pm*km,0)} g`,3)+row("CO",e.co,ref.co,`${fmt(e.co*km/1000,1)} kg`,2)+row("CO₂",e.co2,ref.co2,`${fmt(e.co2*km/1e6,1)} t`,0);
+  const dmg=(e.pm+0.1*e.nox)*km*DMG;$("#lab-b-v").innerHTML=isEV?`Elektr transportda mo‘ridan chiqindi yo‘q, faqat shina va tormoz changi qoladi.`:`Yiliga ~${fmt(km)} km yursa, sog‘liqqa zarar <b style="color:var(--bad)">≈ $${fmt(dmg)}</b>. ${v<20?`Tirbandlikda chiqindi ×${fmt(efSpeed(v)/efSpeed(50),1)} ga oshgan.`:""}`}
+const LC=$("#lab-c"),lcx=LC.getContext("2d"),STB=["B","C","D","E","F"];
+function labC(){const q=+$("#lc-q").value,u=+$("#lc-u").value,a=+$("#lc-a").value,st=STB[+$("#lc-s").value];
+  $("#lc-q-v").textContent=`${fmt(q)}/soat`;$("#lc-u-v").textContent=`${fmt(u,1)} m/s`;$("#lc-a-v").textContent=`${a}°`;$("#lc-s-v").textContent=`${st} ${["beqaror","biroz beqaror","neytral","barqaror","inversiya"][+$("#lc-s").value]}`;
+  const Wd=LC.width,Hd=LC.height,cs=5,nx=Wd/cs,ny=Hd/cs,X0=-1100,X1=1100,Y0=-300,Y1=850,dxm=(X1-X0)/nx,dym=(Y1-Y0)/ny,th=a*PI/180,wx=Math.cos(th),wy=Math.sin(th);
+  const Qm=q*0.9*1.4/3.6,pts=[];for(let x=-1000;x<=1000;x+=20)pts.push(x);const bg=18;const field=new Float32Array(nx*ny);
+  const conc=(px,py)=>{let c=0;for(const sx of pts){const dx=px-sx,dy=py,xd=dx*wx+dy*wy+15;if(xd<1)continue;const yc=-dx*wy+dy*wx;let [sy,sz]=briggs(st,xd);sy=Math.sqrt(sy*sy+400);sz=Math.sqrt(sz*sz+9);c+=Qm*20/(PI*u*sy*sz)*Math.exp(-yc*yc/(2*sy*sy))}return 0.22*c};
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const px=X0+(i+.5)*dxm,py=Y1-(j+.5)*dym;field[j*nx+i]=conc(px,py)}
+  const img=lcx.createImageData(Wd,Hd),d=img.data;for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const r=(bg+field[j*nx+i])/25;const [c,al]=ramp(RAMP_R,r);
+    for(let yy=0;yy<cs;yy++)for(let xx=0;xx<cs;xx++){const o=((j*cs+yy)*Wd+i*cs+xx)*4;const A=Math.min(1,al*1.6+0.05);d[o]=c[0]*A+235*(1-A);d[o+1]=c[1]*A+242*(1-A);d[o+2]=c[2]*A+239*(1-A);d[o+3]=255}}
+  lcx.putImageData(img,0,0);const yRoad=(Y1-0)/(Y1-Y0)*Hd;lcx.strokeStyle="#0d1f1b";lcx.lineWidth=4;lcx.beginPath();lcx.moveTo((-1000-X0)/(X1-X0)*Wd,yRoad);lcx.lineTo((1000-X0)/(X1-X0)*Wd,yRoad);lcx.stroke();
+  lcx.save();lcx.translate(Wd-40,40);lcx.rotate(-th);lcx.fillStyle="#0b7a57";lcx.beginPath();lcx.moveTo(18,0);lcx.lineTo(-10,-8);lcx.lineTo(-5,0);lcx.lineTo(-10,8);lcx.closePath();lcx.fill();lcx.restore();
+  lcx.font="600 12px Onest, sans-serif";lcx.fillStyle="#0d1f1b";lcx.fillText("shamol",Wd-62,72);lcx.fillText("ko‘cha",8,yRoad-8);
+  const at=(dist)=>conc(0,Math.max(5,dist)*Math.sign(wy||1));const r1=bg+at(20),r2=bg+at(200);let dd="> 800 m";for(let s=20;s<=800;s+=10){if(at(s)<5){dd=`${s} m`;break}}
+  $("#lc-r1").textContent=`${fmt(r1)} µg/m³`;$("#lc-r2").textContent=`${fmt(r2)} µg/m³`;$("#lc-r3").textContent=dd}
+function initLabs(){$("#lab-t").innerHTML=VT.filter(t=>t.id!=="ebus").map(t=>`<option value="${TI[t.id]}">${t.n}: ${t.f}</option>`).join("");
+  $("#lab-rho").oninput=labA;["#lab-t","#lab-e"].forEach(i=>$(i).onchange=labB);$("#lab-v").oninput=labB;["#lc-q","#lc-u","#lc-a","#lc-s"].forEach(i=>$(i).oninput=labC)}
+function briggs(st,x){switch(st){case"B":return[0.32*x/Math.sqrt(1+4e-4*x),0.24*x*Math.sqrt(1+1e-3*x)];case"C":return[0.22*x/Math.sqrt(1+4e-4*x),0.20*x];case"D":return[0.16*x/Math.sqrt(1+4e-4*x),0.14*x/Math.sqrt(1+3e-4*x)];case"E":return[0.11*x/Math.sqrt(1+4e-4*x),0.08*x/Math.sqrt(1+1.5e-3*x)];default:return[0.088*x/Math.sqrt(1+4e-4*x),0.06*x/Math.sqrt(1+1.5e-3*x)]}}
+
+/* ---------- slide 7: AI on real data ---------- */
+let aiPol="no2";const AIC={};
+const FN=["Soat","Soat","Dam olish kuni","Shamol tezligi","Shamol yo‘nalishi","Shamol yo‘nalishi","Harorat","Havo qatlami balandligi","Kecha shu soatda","O‘tgan sutka o‘rtachasi"];
+function feat(R,y,k,m24){const d=new Date(R.t[k]+":00"),h=d.getHours(),dir=(R.dir[k]||0)*PI/180;if(R.u[k]==null||R.blh[k]==null||R.T[k]==null||y[k-24]==null)return null;
+  return [Math.sin(2*PI*h/24),Math.cos(2*PI*h/24),(d.getDay()===0||d.getDay()===6)?1:0,R.u[k],Math.sin(dir),Math.cos(dir),R.T[k],R.blh[k],y[k-24],m24]}
+function m24at(y,k){let s=0,n=0;for(let q=k-47;q<=k-24;q++)if(q>=0&&y[q]!=null){s+=y[q];n++}return n?s/n:null}
+function trainReal(pol){if(AIC[pol])return AIC[pol];const R=REAL,y=R[pol],iN=R.iNow,X=[],Y=[],K=[];
+  for(let k=48;k<=iN;k++){if(y[k]==null)continue;const m=m24at(y,k);if(m==null)continue;const f=feat(R,y,k,m);if(!f)continue;X.push(f);Y.push(y[k]);K.push(k)}
+  const split=K.findIndex(k=>k>iN-240);const t0=performance.now();const M=CORE.trainGB(X.slice(0,split),Y.slice(0,split));
+  const clim=Array(24).fill(0),cn=Array(24).fill(0);for(let i=0;i<split;i++){const h=new Date(R.t[K[i]]+":00").getHours();clim[h]+=Y[i];cn[h]++}
+  let ea=0,ep=0,ec=0,n=0;for(let i=split;i<X.length;i++){const h=new Date(R.t[K[i]]+":00").getHours();ea+=Math.abs(CORE.gbPredict(M,X[i])-Y[i]);ep+=Math.abs(X[i][8]-Y[i]);ec+=Math.abs(clim[h]/cn[h]-Y[i]);n++}
+  const Mall=CORE.trainGB(X,Y);const full=Array.from(y);const m=m24at(full,iN+24);const fc=[];
+  for(let k=iN+1;k<=iN+24&&k<R.t.length;k++){const f=feat(R,full,k,m24at(full,k));fc.push(f?Math.max(0,CORE.gbPredict(Mall,f)):null)}
+  const res={mae:ea/n,maeP:ep/n,maeC:ec/n,n:X.length,nTest:n,ms:performance.now()-t0,imp:Mall.imp,fc};AIC[pol]=res;return res}
+function renderAI(){if(CUR!=="ai")return;const el=$("#ai-chart");
+  if(!REAL){$("#ai-live").textContent="internet yo‘q: namunaviy maʼlumot";const p=aiPol==="co"?"pm":aiPol;const M=CORE.aiModel(0,p),fb=CORE.aiForecast(0,p,M,CORE.BASE_SCN,"base"),o=CORE.truth[0][p],H0=CORE.HIST,h=Array.from(o.slice(H0-72,H0));
+    svgChart(el,{n:96,series:[{v:[...h,...Array(24).fill(null)],c:"#4f625d",w:2},{v:[...Array(71).fill(null),h[71],...fb],c:"#0b7a57",w:3,area:true}],ref:{v:WHO24[p],t:"JSST"},mark:71,h:420,label:"Prognoz"});
+    $("#ai-lg").innerHTML=`<span><i style="background:#4f625d"></i>Sintetik sensor tarixi</span><span><i style="background:#0b7a57"></i>AI prognoz</span>`;
+    $("#ai-m").innerHTML=`<div class="win"><span>AI</span><b>${fmt(M.mae,1)}</b></div><div><span>Kecha shu soatda</span><b>${fmt(M.maeP,1)}</b></div><div><span>Fizik model</span><b>${fmt(M.maeF,1)}</b></div>`;
+    $("#ai-call").textContent="Internet ulanmagani uchun namunaviy maʼlumotda ko‘rsatilmoqda. Internet bilan model real Copernicus maʼlumotida o‘qitiladi.";{const tt=M.m.imp.reduce((a,b)=>a+b,0),agg={};CORE.FEATN.forEach((n,i)=>agg[n]=(agg[n]||0)+M.m.imp[i]/tt);const ia=Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,5),im=ia[0][1];$("#ai-imp").innerHTML=ia.map(([n,v])=>`<div class="b"><span>${n}</span><span class="v">${fmt(v*100)}%</span><div class="t"><div class="f" style="width:${v/im*100}%"></div></div></div>`).join("")}$("#ai-why").textContent="Namunaviy rejim: sensor tarixi sintetik.";return}
+  const R=REAL,pol=aiPol,A=trainReal(pol),y=R[pol],iN=R.iNow,obs=[],cams=[],aiS=[];
+  for(let k=iN-71;k<=iN+24;k++){obs.push(k<=iN?y[k]:null);cams.push(k>=iN&&k<R.t.length?y[k]:null);aiS.push(k===iN?y[k]:k>iN?A.fc[k-iN-1]:null)}
+  const xt=[];for(let i=0;i<96;i+=12){const k=iN-71+i;if(R.t[k])xt.push([i,R.t[k].slice(11,13)+":00"])}
+  svgChart(el,{n:96,series:[{v:obs,c:"#4f625d",w:2},{v:cams,c:"#d99a00",w:2,dash:"5 4"},{v:aiS,c:"#0b7a57",w:3.2,area:true}],ref:pol==="co"?null:{v:WHO24[pol],t:"JSST 24 soat"},mark:71,xt,xlab:true,h:420,label:"Real prognoz"});
+  $("#ai-lg").innerHTML=`<span><i style="background:#4f625d"></i>Kuzatilgan, oxirgi 72 soat</span><span><i style="background:#0b7a57"></i>TozaYo‘l AI prognozi, 24 soat</span><span><i style="background:#d99a00"></i>Copernicus CAMS prognozi (taqqoslash)</span>`;
+  let pk=0;A.fc.forEach((v,i)=>{if(v!=null&&v>(A.fc[pk]??-1))pk=i});const pv=A.fc[pk],ph=R.t[iN+1+pk].slice(11,16),pd=R.t[iN+1+pk].slice(8,10)+"."+R.t[iN+1+pk].slice(5,7);
+  $("#ai-call").innerHTML=`Keyingi 24 soatda eng yuqori ${PN[pol]}: <b>${pd}, ${ph}</b> da ≈ <b>${fmt(pv,pol==="co"?0:1)} µg/m³</b>${pol!=="co"?`, JSST sutkalik me’yoridan ${fmt(pv/WHO24[pol],1)}×`:""}. Shu soatlarda tirbandlikni kamaytirish va maktablarga ogohlantirish yuborish tavsiya etiladi.`;
+  const best=Math.min(A.mae,A.maeP,A.maeC);
+  $("#ai-m").innerHTML=`<div class="${A.mae===best?"win":""}"><span>TozaYo‘l AI</span><b>${fmt(A.mae,1)}</b></div><div class="${A.maeP===best?"win":""}"><span>“Kecha shu soatda”</span><b>${fmt(A.maeP,1)}</b></div><div class="${A.maeC===best?"win":""}"><span>Soatlik o‘rtacha</span><b>${fmt(A.maeC,1)}</b></div>`;
+  const tt=A.imp.reduce((a,b)=>a+b,0),agg={};FN.forEach((n,i)=>agg[n]=(agg[n]||0)+A.imp[i]/tt);const ia=Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,5),im=ia[0][1];
+  $("#ai-imp").innerHTML=ia.map(([n,v])=>`<div class="b"><span>${n}</span><span class="v">${fmt(v*100)}%</span><div class="t"><div class="f" style="width:${v/im*100}%"></div></div></div>`).join("");
+  const gain=(1-A.mae/A.maeP)*100;$("#ai-why").innerHTML=`AI oddiy “kecha shu soatda” usulidan <b>${fmt(gain)}%</b> aniqroq. U ${fmt(A.n)} soatlik real qatorda o‘qitildi, ${fmt(A.nTest)} soatda tekshirildi (${fmt(A.ms)} ms). Pilotda xuddi shu model ko‘cha sensorlariga o‘qitiladi.`;
+  $("#ai-live").textContent="real maʼlumot · jonli";$("#ai-live").classList.remove("off")}
+
+/* ---------- slide 8: calculator ---------- */
+function fleetCalc(o){const v0=18,v=v0+o.tr*30+o.sm,traffic=1-o.tr;let nox=0,pm=0,co2=0;
+  VT.forEach((t,i)=>{if(i===TI.ebus)return;[.45,.40,.15].forEach((es,e)=>{let w=t.sh*es;const add=(tt,ee,f,vv)=>{const k=perKm(tt,ee,vv);nox+=w*f*k.nox;pm+=w*f*k.pm*(1-o.gr);co2+=w*f*k.co2};
+    let ee=e,fOld=1;if(e===0&&i!==TI.ev&&o.lez>0){add(i,1,o.lez,v);fOld=1-o.lez}
+    if(i===TI.avtobus){add(TI.avtobus,ee,fOld*(1-o.eb),v);add(TI.ebus,1,fOld*o.eb,v)}else if(i===TI.yuk){add(i,ee,fOld*(1-o.tk),v);add(i,ee,fOld*o.tk,45)}else add(i,ee,fOld,v)})});
+  return {nox:nox*traffic,pm:pm*traffic,co2:co2*traffic}}
+const CM=[["tr","Jamoat transporti"],["lez","Ekologik zona"],["eb","Elektr avtobuslar"],["tk","Yuk mashinalari tunga"],["sm","Aqlli svetoforlar"],["gr","Yashil polosalar"]];
+function readCalc(){return {tr:+$("#c-tr").value/100,lez:+$("#c-lez").value/100,eb:+$("#c-eb").value/100,tk:+$("#c-tk").value/100,sm:+$("#c-sm").value,gr:+$("#c-gr").value/100}}
+function renderCalc(){const o=readCalc(),Z={tr:0,lez:0,eb:0,tk:0,sm:0,gr:0},b=fleetCalc(Z),c=fleetCalc(o),pe=x=>x.pm+0.1*x.nox,r=1-pe(c)/pe(b),rn=1-c.nox/b.nox,rc=1-c.co2/b.co2;
+  $("#c-tr-v").textContent=`${fmt(o.tr*100)}%`;$("#c-lez-v").textContent=`${fmt(o.lez*100)}%`;$("#c-eb-v").textContent=`${fmt(o.eb*100)}%`;$("#c-tk-v").textContent=`${fmt(o.tk*100)}%`;$("#c-sm-v").textContent=`+${o.sm} km/soat`;$("#c-gr-v").textContent=`${fmt(o.gr*100)}%`;
+  $("#o-pm").textContent=`−${fmt(r*100)}%`;$("#o-nox").textContent=`−${fmt(rn*100)}%`;$("#o-life").textContent=`≈ ${fmt(3000*0.18*r)}`;$("#o-usd").textContent=`$${fmt(488.4*0.18*r)} mln`;
+  $("#o-co2").textContent=`CO₂: −${fmt(rc*100)}%`;
+  const ind=CM.map(([k,n])=>{const z={...Z,[k]:o[k]};return [n,1-pe(fleetCalc(z))/pe(b)]}).sort((a,b)=>b[1]-a[1]),mx=Math.max(0.01,...ind.map(x=>x[1]));
+  $("#o-contrib").innerHTML=ind.map(([n,v])=>`<div class="b"><span>${n}</span><div class="t"><div class="f" style="width:${v/mx*100}%"></div></div><span class="v">−${fmt(v*100)}%</span></div>`).join("")}
+["#c-tr","#c-lez","#c-eb","#c-tk","#c-sm","#c-gr"].forEach(i=>$(i).oninput=renderCalc);
+
+/* ---------- boot ---------- */
+ON_SHOW.tahlil=renderAnalysis;ON_SHOW.lab=()=>{labA();labB();labC()};ON_SHOW.ai=renderAI;ON_SHOW.yechim=()=>{renderCalc();renderHot()};
+ON_SHOW.model=()=>showModel(+($("#flow .blk[aria-pressed=true],.aiband[aria-pressed=true]")?.dataset.m||0));
+ON_SHOW.sim=()=>{if(map){map.invalidateSize();if(!simShown){simShown=true;setTimeout(()=>{if(TL.n===0)S.noTiles=true},8000)}}};
+seg("#an-pol",v=>{anPol=v;renderAnalysis()});seg("#ai-pol",v=>{aiPol=v;renderAI()});
+$("#guide-x").onclick=()=>$("#guide").hidden=true;
+buildTabs();fitAll();updMet();initLabs();renderNow(SNAP.now,false);renderCalc();
+goTo((location.hash||"").slice(1)||"cover");
+if(initMap()){
+  initUI();
+  syncLabels();
+  buildNet(fallbackRoads());
+  $("#net-st").textContent=`Oflayn magistrallar · 1 belgi = ${RREP} avtomobil · tenglama to‘ri ${G.nx}×${G.ny}`;
+  requestAnimationFrame(loop);
+  loadOSM().then(r=>{
+    if(r&&r.roads&&r.roads.length>20){
+      buildNet(r.roads);
+      $("#net-st").textContent=`${r.src} · 1 belgi = ${RREP} avtomobil · tenglama to‘ri ${G.nx}×${G.ny}`;
+    }
+  }).catch(()=>{});
+}
+fetchReal().then(R=>{REAL=R;AN=summarize(R);renderNow(R.cur,true);$("#an-live").textContent="jonli: "+AN.range.join(" → ");$("#an-live").classList.remove("off");
+  $("#an-src").textContent=`Manba: Copernicus CAMS (ECMWF) va Open-Meteo, Toshkent markazi, soatlik, ${AN.range[0]} – ${AN.range[1]}.`;
+  if(R.curw){S.u=clamp(+R.curw.wind_speed_10m.toFixed(1),0.5,8);S.dir=Math.round(R.curw.wind_direction_10m/5)*5%360;$("#wspd").value=S.u;$("#wdir").value=S.dir;updMet();syncLabels()}
+  if(ON_SHOW[CUR])ON_SHOW[CUR]()}).catch(()=>{$("#an-src").textContent=`Manba: Copernicus CAMS, Open-Meteo. Internet yo‘q: ${SNAP.range[0]} – ${SNAP.range[1]} oralig‘idagi saqlangan maʼlumot ko‘rsatilmoqda.`;if(CUR==="ai")renderAI()});
+</script>
+</body>
+</html>
