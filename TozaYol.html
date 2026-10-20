@@ -316,6 +316,7 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
     -webkit-overflow-scrolling: touch;
   }
   .slide {
+    display: none !important;
     position: relative !important;
     inset: auto !important;
     width: 100% !important;
@@ -548,11 +549,14 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
 
   /* Slide 6 Simulyatsiya */
   #s-sim {
+    display: none !important;
+  }
+  #s-sim.on {
+    display: flex !important;
     position: relative !important;
     overflow-y: auto !important;
     height: auto !important;
     min-height: calc(100vh - 56px) !important;
-    display: flex !important;
     flex-direction: column !important;
     padding: 8px !important;
     box-sizing: border-box !important;
