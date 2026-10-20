@@ -128,6 +128,10 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
 .find div{border-radius:14px;padding:16px 18px;background:#fff;border:1px solid var(--line)}
 .find b{display:block;font:700 34px/1.05 var(--f-display);letter-spacing:-.02em;color:var(--accent)}
 .find span{font-size:14.5px;color:var(--muted);line-height:1.35;display:block;margin-top:6px}
+.an-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;min-height:0}
+.an-side{display:grid;grid-template-rows:1fr 1fr;gap:18px;min-height:0}
+.an-card-hd{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.lab-controls{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
 
 /* slide 4 model architecture */
 .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative}
@@ -445,17 +449,43 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
   /* Slide 3 Tahlil */
   .find {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
     gap: 8px !important;
   }
   .find div {
     padding: 10px 12px !important;
   }
   .find b {
-    font-size: 22px !important;
+    font-size: 20px !important;
   }
   .find span {
     font-size: 13px !important;
+  }
+  .an-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .an-side {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .an-card-hd {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .an-card-hd .seg {
+    display: flex !important;
+    width: 100% !important;
+  }
+  .an-card-hd .seg button {
+    flex: 1 !important;
+    text-align: center !important;
+    padding: 6px 4px !important;
+    font-size: 12.5px !important;
   }
 
   /* Slide 4 Model */
@@ -504,12 +534,16 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
     flex-direction: column !important;
     gap: 14px !important;
   }
+  .lab-controls {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
   .lab .res {
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 6px !important;
   }
   .lab .res b {
-    font-size: 15px !important;
+    font-size: 14px !important;
   }
 
   /* Slide 6 Simulyatsiya */
@@ -518,21 +552,56 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
     overflow-y: auto !important;
     height: auto !important;
     min-height: calc(100vh - 56px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
   }
   #map {
     position: relative !important;
     width: 100% !important;
-    height: 48vh !important;
-    min-height: 280px !important;
+    height: 44vh !important;
+    min-height: 260px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    flex: none !important;
   }
   .pl, .pr {
     position: relative !important;
     inset: auto !important;
     width: 100% !important;
     max-height: none !important;
-    margin: 10px 0 !important;
+    margin: 10px 0 0 0 !important;
     box-sizing: border-box !important;
     display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+  .pl .ctl {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .pl .seg {
+    display: flex !important;
+    width: 100% !important;
+  }
+  .pl .seg button {
+    flex: 1 !important;
+    text-align: center !important;
+  }
+  .pl .row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .pl .row input[type="range"] {
+    flex: 1 !important;
+    width: auto !important;
   }
   .pb {
     display: flex !important;
@@ -541,7 +610,7 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
     transform: none !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin: 8px 0 !important;
+    margin: 8px 0 0 0 !important;
     padding: 8px 10px !important;
     box-sizing: border-box !important;
     justify-content: space-between !important;
@@ -669,16 +738,16 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
   <h2 class="st">Oxirgi 60 kun: ifloslanish tirbandlik soatlari va havo qatlami bilan birga o‘zgaradi</h2>
   <div class="body" style="grid-template-rows:auto 1fr">
     <div class="find" id="finds"></div>
-    <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:18px;min-height:0">
+    <div class="an-grid">
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div class="an-card-hd">
           <div><h3>Sutka davomida: ish kuni va dam olish kuni</h3><p class="hint">Ish kunlari kechqurun va ertalab ko‘tarilish: avtomobillar izi</p></div>
           <div class="seg" id="an-pol"><button data-v="no2" aria-pressed="true">NO₂</button><button data-v="co" aria-pressed="false">CO</button><button data-v="pm" aria-pressed="false">PM2.5</button></div>
         </div>
         <div id="an-diurnal" style="margin-top:6px"></div>
         <div class="lg"><span><i style="background:var(--bad)"></i>Ish kunlari (Du–Ju)</span><span><i style="background:var(--blue)"></i>Dam olish (Sh–Ya)</span><span><i style="background:#f2c7c7;height:10px"></i>Tirbandlik soatlari</span></div>
       </div>
-      <div style="display:grid;grid-template-rows:1fr 1fr;gap:18px;min-height:0">
+      <div class="an-side">
         <div class="card"><h3 style="font-size:17px">Kunlik o‘rtacha: kuz kelishi bilan o‘sish</h3><div id="an-trend"></div></div>
         <div class="card"><h3 style="font-size:17px">Havo qatlami past bo‘lsa, ifloslanish qamaladi</h3><div id="an-blh"></div></div>
       </div>
@@ -739,7 +808,7 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
       <h3>C. Ko‘chadan tarqalish (Gauss yechimi)</h3>
       <p class="hint">Gorizontal chiziq: 2 km ko‘cha. Rang: NO₂ ning JSST me’yoriga nisbati</p>
       <canvas id="lab-c" width="440" height="230" aria-label="Tarqalish xaritasi"></canvas>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 14px">
+      <div class="lab-controls">
         <div class="ctl"><label for="lc-q">Oqim <b id="lc-q-v">3000/soat</b></label><input type="range" id="lc-q" min="500" max="8000" step="250" value="3000"></div>
         <div class="ctl"><label for="lc-u">Shamol <b id="lc-u-v">1.5 m/s</b></label><input type="range" id="lc-u" min="0.5" max="8" step="0.1" value="1.5"></div>
         <div class="ctl"><label for="lc-a">Yo‘nalish <b id="lc-a-v">90°</b></label><input type="range" id="lc-a" min="0" max="180" step="5" value="90"></div>
