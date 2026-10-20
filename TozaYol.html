@@ -280,18 +280,336 @@ select{background:#fff;color:var(--ink);border:1px solid var(--line-2);border-ra
 .closing b{font:700 30px/1.1 var(--f-display);color:#7ee0b5;display:block}
 .closing span{font-size:15.5px;color:#cfe0da}
 
-/* small screens: no scaling, scroll inside slide */
-@media (max-width:820px){
-  body{overflow:auto}
-  .fit{position:static;width:auto;height:auto;transform:none!important;border-radius:0;padding:26px 18px;overflow:visible}
-  .slide.on{position:relative;overflow:auto;height:100%}
-  .st{font-size:26px}.sub{font-size:16px}
-  .body,.cover,.big4,.chain,.find,.flow,.detail,.labs,.aigrid,.calc,.road,.who,.closing,.outs{grid-template-columns:1fr!important}
-  .cover h1{font-size:56px}
-  .blk::after{display:none}
-  .pl,.pr{position:relative;inset:auto;width:auto;max-height:none;margin:8px}
-  #s-sim{overflow:auto}
-  #map{position:relative;height:65vh}
+/* small screens / mobile view */
+@media (max-width: 820px) {
+  html, body {
+    overflow-x: hidden;
+  }
+  .bar {
+    padding-inline: 12px !important;
+    justify-content: space-between !important;
+  }
+  .tabs {
+    display: none !important;
+  }
+  .arrows {
+    margin-left: auto !important;
+    gap: 6px !important;
+  }
+  .arrows button {
+    width: 34px !important;
+    height: 34px !important;
+  }
+  .arrows span {
+    font-size: 13px !important;
+    min-width: 38px !important;
+  }
+  .deck {
+    position: fixed !important;
+    inset: 56px 0 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .slide {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    height: auto !important;
+  }
+  .slide.on {
+    display: block !important;
+  }
+  .fit {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    transform: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 16px 12px 36px !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+  .kick {
+    font-size: 11px !important;
+  }
+  .st {
+    font-size: 24px !important;
+    line-height: 1.25 !important;
+    margin-top: 8px !important;
+  }
+  .sub {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    margin-top: 6px !important;
+  }
+  .body {
+    margin-top: 14px !important;
+    gap: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .foot {
+    flex-direction: column !important;
+    gap: 6px !important;
+    margin-top: 18px !important;
+    font-size: 11.5px !important;
+  }
+
+  /* Slide 1 Cover */
+  .cover {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    height: auto !important;
+  }
+  .cover h1 {
+    font-size: clamp(32px, 9vw, 44px) !important;
+    line-height: 1.05 !important;
+  }
+  .cover .tag {
+    font-size: 15.5px !important;
+    margin-top: 10px !important;
+  }
+  .cover .meta {
+    margin-top: 14px !important;
+    gap: 6px !important;
+  }
+  .cover .meta span {
+    font-size: 12.5px !important;
+    padding: 6px 10px !important;
+  }
+  .now {
+    padding: 16px !important;
+    border-radius: 14px !important;
+    gap: 12px !important;
+  }
+  .now .aqi b {
+    font-size: clamp(44px, 12vw, 64px) !important;
+  }
+  .now .g {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .now .g div {
+    padding: 6px 8px !important;
+  }
+  .now .g span {
+    font-size: 11px !important;
+  }
+  .now .g b {
+    font-size: 16px !important;
+  }
+
+  /* Slide 2 Muammo */
+  .big4 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .stat {
+    padding: 12px !important;
+  }
+  .stat .v {
+    font-size: 26px !important;
+  }
+  .chain {
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 12px !important;
+  }
+  .chain div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--line) !important;
+    padding: 10px 12px !important;
+  }
+  .chain div:last-child {
+    border-bottom: none !important;
+  }
+  .chain h4 {
+    font-size: 16px !important;
+  }
+  .chain p {
+    font-size: 13.5px !important;
+  }
+  .q {
+    font-size: 15.5px !important;
+    padding: 12px 14px !important;
+  }
+
+  /* Slide 3 Tahlil */
+  .find {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .find div {
+    padding: 10px 12px !important;
+  }
+  .find b {
+    font-size: 22px !important;
+  }
+  .find span {
+    font-size: 13px !important;
+  }
+
+  /* Slide 4 Model */
+  .flow {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .blk {
+    padding: 10px 12px !important;
+  }
+  .blk h4 {
+    font-size: 14px !important;
+  }
+  .blk p {
+    font-size: 12px !important;
+  }
+  .blk::after, .blk:not(:last-child)::after {
+    display: none !important;
+  }
+  .aiband {
+    padding: 10px 12px !important;
+    gap: 6px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .detail {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .tex {
+    font-size: 14px !important;
+    padding: 10px 12px !important;
+    min-height: 70px !important;
+  }
+  .vars li {
+    grid-template-columns: 75px 1fr !important;
+    font-size: 13px !important;
+    gap: 8px !important;
+  }
+
+  /* Slide 5 Labs */
+  .labs {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+  .lab .res {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .lab .res b {
+    font-size: 15px !important;
+  }
+
+  /* Slide 6 Simulyatsiya */
+  #s-sim {
+    position: relative !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: calc(100vh - 56px) !important;
+  }
+  #map {
+    position: relative !important;
+    width: 100% !important;
+    height: 48vh !important;
+    min-height: 280px !important;
+  }
+  .pl, .pr {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-height: none !important;
+    margin: 10px 0 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+  }
+  .pb {
+    display: flex !important;
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 8px 0 !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  .pb .legend {
+    display: none !important;
+  }
+  .guide {
+    display: none !important;
+  }
+
+  /* Slide 7 AI */
+  .aigrid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .metrics {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .metrics div {
+    padding: 8px !important;
+  }
+  .metrics b {
+    font-size: 16px !important;
+  }
+
+  /* Slide 8 Kalkulyator */
+  .calc {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .outs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .outs b {
+    font-size: 22px !important;
+  }
+  .contrib .b {
+    grid-template-columns: 1fr auto !important;
+    font-size: 12.5px !important;
+    gap: 4px !important;
+  }
+  .contrib .t {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Slide 9 Reja */
+  .road {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .who {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .closing {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -1084,10 +1402,12 @@ const ON_SHOW={};
 function buildTabs(){$("#tabs").innerHTML=SL.map((s,i)=>`<button data-k="${s.dataset.k}"><i>${i+1}</i><span>${s.dataset.t}</span></button>`).join("");
   $$("#tabs button").forEach(b=>b.onclick=()=>goTo(b.dataset.k))}
 function fitAll(){const d=$("#deck").getBoundingClientRect();const narrow=window.innerWidth<=820;
-  $$(".fit").forEach(f=>{if(narrow){f.style.transform="none";return}const s=Math.min((d.width-28)/1600,(d.height-24)/900);f.style.transform=`translate(-50%,-50%) scale(${s})`})}
+  $$(".fit").forEach(f=>{if(narrow){f.style.transform="";return}const s=Math.min((d.width-28)/1600,(d.height-24)/900);f.style.transform=`translate(-50%,-50%) scale(${s})`})}
 function goTo(k){if(!KEYS.includes(k))k="cover";CUR=k;SL.forEach(s=>s.classList.toggle("on",s.dataset.k===k));const i=KEYS.indexOf(k);
   $$("#tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.k===k?"true":"false"));$("#pg").textContent=`${i+1} / ${KEYS.length}`;
   try{history.replaceState(null,"","#"+k)}catch(e){}
+  const deckEl=$("#deck");if(deckEl)deckEl.scrollTop=0;
+  const slideEl=$("#s-"+k);if(slideEl)slideEl.scrollTop=0;
   if(ON_SHOW[k])requestAnimationFrame(()=>ON_SHOW[k]())}
 function step(d){goTo(KEYS[clamp(KEYS.indexOf(CUR)+d,0,KEYS.length-1)])}
 document.addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="INPUT"||tg==="SELECT"||tg==="TEXTAREA")return;
